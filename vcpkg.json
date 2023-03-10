@@ -1,0 +1,21 @@
+{
+  "name": "acheron-skse",
+  "version-string": "1.0",
+  "description": "a death alternative mod for skyrim",
+  "dependencies": [
+    "boost-stl-interfaces",
+    "rsm-binary-io",
+    "spdlog",
+    "simpleini",
+    "magic-enum",
+    "yaml-cpp",
+    "nlohmann-json"
+  ],
+  "builtin-baseline": "c06dfc0ac2649834da8b9f3092b907fb037accab",
+  "overrides": [
+    {
+      "name": "fmt",
+      "version": "8.0.1"
+    }
+  ]
+}
