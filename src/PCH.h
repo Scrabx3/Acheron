@@ -44,6 +44,26 @@ using Serialize = Serialization::Serialize;
 namespace stl
 {
 	using namespace SKSE::stl;
+	
+	inline bool read_string(SKSE::SerializationInterface* a_intfc, std::string& a_str)
+	{
+		std::size_t size = 0;
+		if (!a_intfc->ReadRecordData(size)) {
+			return false;
+		}
+		a_str.reserve(size);
+		if (!a_intfc->ReadRecordData(a_str.data(), static_cast<std::uint32_t>(size))) {
+			return false;
+		}
+		return true;
+	}
+
+	template <class S>
+	inline bool write_string(SKSE::SerializationInterface* a_intfc, const S& a_str)
+	{
+		std::size_t size = a_str.length() + 1;
+		return a_intfc->WriteRecordData(size) && a_intfc->WriteRecordData(a_str.data(), static_cast<std::uint32_t>(size));
+	}
 }
 
 namespace Papyrus

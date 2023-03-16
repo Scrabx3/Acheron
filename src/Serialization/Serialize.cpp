@@ -35,6 +35,8 @@ namespace Serialization
 			logger::error("Failed to open record <Processing>"sv);
 		else if (!a_intfc->WriteRecordData(Settings::ConsequenceEnabled))
 			logger::error("Failed to serialize record <Processing>"sv);
+
+		logger::info("Finished writing data to cosave");
 	}
 
 	void Serialize::LoadCallback(SKSE::SerializationInterface* a_intfc)
@@ -67,6 +69,8 @@ namespace Serialization
 				break;
 			}
 		}
+
+		logger::info("Finished loading data from cosave");
 	}
 
 	void Serialize::RevertCallback(SKSE::SerializationInterface* a_intfc)

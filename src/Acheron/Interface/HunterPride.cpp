@@ -48,26 +48,12 @@ namespace Acheron::Interface
 		view->CreateFunction(&dst2, fn2);
 		success = _main.SetMember("CloseComplete", dst2);
 		assert(success);
-
-		if (_options.empty()) {
-			RegisterDefaultOptions();
-		}
-		assert(!_options.empty());
 	}
 
 	void HunterPride::Register()
 	{
 		RE::UI::GetSingleton()->Register(NAME, Create);
-	}
-
-	void HunterPride::RegisterDefaultOptions()
-	{
-		constexpr auto vampire_cond = "{\"player\":{\"has\":{\"keywords\":[\"0xa82bb\"]}},\"target\":{\"not\":{\"keywords\":[\"0x13796\"]}}}";
-
-		_options.emplace_back(DefaultOptions[1].data(), "", "$Achr_Plunder", "Plunder.dds");
-		_options.emplace_back(DefaultOptions[2].data(), "", "$Achr_Execute", "Execute.dds");
-		_options.emplace_back(DefaultOptions[0].data(), "", "$Achr_Rescue", "Rescue.dds");
-		_options.emplace_back(DefaultOptions[3].data(), vampire_cond, "$Achr_Vampire", "Vampire.dds");
+		logger::info("Registered Hunter Pride Menu");
 	}
 
 	bool HunterPride::AddOption(const RE::BSFixedString& a_option, const std::string& a_conditionstring, const std::string& a_name, const std::string& a_iconsrc)
@@ -85,7 +71,7 @@ namespace Acheron::Interface
 
 	bool HunterPride::RemoveOption(const RE::BSFixedString& a_option)
 	{
-		const auto where = std::find_if(_options.begin() + DefaultOptions.size(), _options.end(), [&a_option](Option& option) { return option.GetID() == a_option; });
+		const auto where = std::find_if(_options.begin(), _options.end(), [&a_option](Option& option) { return option.GetID() == a_option; });
 		if (where != _options.end()) {
 			_options.erase(where);
 			return true;
@@ -108,19 +94,28 @@ namespace Acheron::Interface
 		switch (*a_message.type) {
 		case Type::kShow:
 			{
+				constexpr auto vampire_cond = "{\"player\":{\"has\":{\"keywords\":[\"0xa82bb\"]}},\"target\":{\"not\":{\"keywords\":[\"0x13796\"]}}}";
+
 				std::vector<RE::GFxValue> args;
-				args.reserve(_options.size());
-				for (auto& e : _options) {
+				args.reserve(_options.size() + 4);
+				static const std::array defaults{
+					Option{ "rescue", "", "$Achr_Plunder", "Plunder.dds" },
+					Option{ "plunder", "", "$Achr_Execute", "Execute.dds" },
+					Option{ "execute", "", "$Achr_Rescue", "Rescue.dds" },
+					Option{ "vampire", vampire_cond, "$Achr_Vampire", "Vampire.dds" }
+				};
+				for (size_t i = 0; i < defaults.size() + _options.size(); i++) {
+					// IDEA: Hidden flag?
+					const Option op = i < 4 ? defaults[i] : _options[i - 4];
 					bool enabled = false;
-					if (e._id == "rescue") {
+					if (op._id == "rescue") {
 						enabled = HasBeneficialPotion(RE::PlayerCharacter::GetSingleton());
 					} else {
-						enabled = e.Check();
+						enabled = op.Check();
 					}
-					// IDEA: Hidden flag?
 					RE::GFxValue arg{};
 					this->uiMovie->CreateObject(&arg);
-					e.PopulateObjectData(arg);
+					op.PopulateObjectData(arg);
 					arg.SetMember("enabled", { enabled });
 					args.push_back(arg);
 				}
@@ -272,25 +267,22 @@ namespace Acheron::Interface
 
 	void HunterPride::Save(SKSE::SerializationInterface* a_intfc)
 	{
-		const size_t numRegs = _options.size() - DefaultOptions.size();
+		const size_t numRegs = _options.size();
 		if (!a_intfc->WriteRecordData(numRegs)) {
 			logger::error("Failed to save number of regs ({})", numRegs);
 			return;
 		}
-		for (auto&& option : _options) {
-			if (std::find(DefaultOptions.begin(), DefaultOptions.end(), option._id) != DefaultOptions.end()) {
-				continue;
-			}
 
-			if (!a_intfc->WriteRecordData(option._id)) {
+		for (auto&& option : _options) {
+			if (!stl::write_string(a_intfc, option._id)) {
 				logger::error("Failed to save option id ({})", option._id);
 				continue;
 			}
-			if (!a_intfc->WriteRecordData(option._name)) {
+			if (!stl::write_string(a_intfc, option._name)) {
 				logger::error("Failed to save option name ({})", option._name);
 				continue;
 			}
-			if (!a_intfc->WriteRecordData(option._iconurl)) {
+			if (!stl::write_string(a_intfc, option._iconurl)) {
 				logger::error("Failed to save option url ({})", option._iconurl);
 				continue;
 			}
@@ -325,21 +317,28 @@ namespace Acheron::Interface
 				}
 			}
 		}
+
+		logger::info("Saved {} options to cosave", numRegs);
 	}
 
 	void HunterPride::Load(SKSE::SerializationInterface* a_intfc)
 	{
 		_options.clear();
-		RegisterDefaultOptions();
 
 		std::size_t numRegs;
 		a_intfc->ReadRecordData(numRegs);
 
+		std::string id{}, name{}, url{};
+
 		for (size_t i = 0; i < numRegs; i++) {
 			Option next{};
-			a_intfc->ReadRecordData(next._id);
-			a_intfc->ReadRecordData(next._name);
-			a_intfc->ReadRecordData(next._iconurl);
+			stl::read_string(a_intfc, id);
+			stl::read_string(a_intfc, name);
+			stl::read_string(a_intfc, url);
+
+			next._id = id;
+			next._name = name;
+			next._iconurl = url;
 
 			for (size_t j = 0; j < Option::ConditionTarget::Total; j++) {
 				size_t numCons;
@@ -381,12 +380,13 @@ namespace Acheron::Interface
 			}
 			_options.push_back(next);
 		}
+		
+		logger::info("Restored {} options from cosave", _options.size());
 	}
 
 	void HunterPride::Revert(SKSE::SerializationInterface*)
 	{
 		_options.clear();
-		RegisterDefaultOptions();
 	}
 
 }

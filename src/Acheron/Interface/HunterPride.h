@@ -8,8 +8,6 @@ namespace Acheron::Interface
 		using GRefCountBaseStatImpl::operator new;
 		using GRefCountBaseStatImpl::operator delete;
 
-		static inline constexpr std::array DefaultOptions{ "rescue"sv, "plunder"sv, "execute"sv, "vampire"sv };
-
 	public:
 		static constexpr std::string_view NAME{ "AcheronHunterPride" };
 		static constexpr std::string_view FILEPATH{ "Acheron\\AcheronHunterPride" };
@@ -17,7 +15,6 @@ namespace Acheron::Interface
 		HunterPride();
 		~HunterPride() = default;
 		static void Register();
-		static void RegisterDefaultOptions();
 		static RE::IMenu* Create() { return new HunterPride(); }
 
 	public:

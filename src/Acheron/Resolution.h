@@ -64,9 +64,9 @@ namespace Acheron
 		RE::TESQuest* quest = nullptr;
 		std::string name = "NAME_MISSING";
 
-		uint16_t cooldown = 0;
-		uint8_t priority = 0;
-		uint8_t weight = 50;
+		uint16_t cooldown{0};
+		uint8_t priority{0};
+		uint8_t weight{50};
 
 		stl::enumeration<Flags, uint8_t> flags{ Flags::Teleport };
 		std::vector<CONDITION_DATA> conditions[ConditionTarget::Total];

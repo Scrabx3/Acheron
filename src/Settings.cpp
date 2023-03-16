@@ -48,6 +48,7 @@ void Settings::Initialize()
 				break;
 			}
 		}
+		logger::info("Finished loading user settings");
 	} catch (const std::exception& e) {
 		logger::error("Unable to laod settings, error: {}", e.what());
 	}
@@ -85,4 +86,5 @@ void Settings::Save()
 	}
 	std::ofstream fout(CONFIGPATH("Settings.yaml"));
 	fout << settings;
+	logger::info("Finished saving user settings");
 }

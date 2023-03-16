@@ -177,14 +177,23 @@ namespace Acheron
 	{
 		YAML::Node save{};
 		for (auto&& t : magic_enum::enum_entries<Type>()) {
+			if (t.first == Type::Total)
+				break;
+
 			const auto& events = Events[t.first];
-			for (auto&& e : events) {
-				// if (e.name != "NAME_MISSING")
-					save[t.second.data()][e.name] = e.weight;
+			for (auto&& event : events) {
+				try {
+					// if (e.name != "NAME_MISSING")
+					save[t.second.data()][event.name] = event.weight;
+				} catch (const std::exception& e) {
+					logger::error("Failed to save event weight for event {}: {}", event.name, e.what());
+				}
 			}
 		}
 		std::ofstream fout{ CONFIGPATH("Consequences\\Weights.yaml") };
 		fout << save;
+
+		logger::info("Saved resolution user data");
 	}
 
 	RE::TESQuest* Resolution::SelectQuest(Type type, RE::Actor* a_victim, const std::vector<RE::Actor*>& a_victoires, bool a_incombat)

@@ -57,10 +57,11 @@ extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []() {
 	v.UsesAddressLibrary();
 	v.UsesUpdatedStructs();
 	v.CompatibleVersions({ SKSE::RUNTIME_LATEST });
+	// v.CompatibleVersions({ SKSE::RUNTIME_1_6_353 });
 	return v;
 }();
 #else
-extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::PluginInfo* a_info)
+extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface*, SKSE::PluginInfo* a_info)
 {
 	a_info->infoVersion = SKSE::PluginInfo::kVersion;
 	a_info->name = Plugin::NAME.data();
@@ -87,7 +88,7 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 		log->flush_on(spdlog::level::trace);
 #else
 		log->set_level(spdlog::level::info);
-		log->flush_on(spdlog::level::warn);
+		log->flush_on(spdlog::level::info);
 #endif
 
 		spdlog::set_default_logger(std::move(log));
