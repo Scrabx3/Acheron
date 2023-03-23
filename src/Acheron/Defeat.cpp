@@ -97,11 +97,11 @@ namespace Acheron
 			logger::error("{:X} ({}) is not a defeated actor and cannot be rescued", a_victim->GetFormID(), a_victim->GetDisplayFullName());
 			return;
 		} else if (auto ref = a_victim->GetObjectReference(); !ref) {
-			// Actor is likely unloaded, keywords will hence be reset when they load back in anyway so this isnt exactly an issue
 			logger::warn("{:X} ({}) has no associated reference, keywords will not be removed", a_victim->GetFormID(), a_victim->GetDisplayFullName());
 		} else {
 			ref->As<RE::BGSKeywordForm>()->RemoveKeyword(GameForms::Defeated);
 		}
+		Victims.erase(a_victim->GetFormID());
 
 		if (a_victim->IsPlayerRef()) {
 			auto cmap = RE::ControlMap::GetSingleton();
@@ -152,7 +152,7 @@ namespace Acheron
 		if (state == RE::ACTOR_LIFE_STATE::kDying || state == RE::ACTOR_LIFE_STATE::kDead) {
 			logger::error("{:X} ({}) is dead and cannot be pacified", a_victim->GetFormID(), a_victim->GetDisplayFullName());
 			return;
-		} else if (Victims.contains(a_victim->GetFormID())) {
+		} else if (Pacified.contains(a_victim->GetFormID())) {
 			logger::error("{:X} ({}) is already pacified", a_victim->GetFormID(), a_victim->GetDisplayFullName());
 			return;
 		}
@@ -182,15 +182,15 @@ namespace Acheron
 
 	void Defeat::UndoPacify(RE::Actor* a_victim)
 	{
-		if (!Victims.contains(a_victim->GetFormID())) {
+		if (!Pacified.contains(a_victim->GetFormID())) {
 			logger::error("{:X} ({}) is not a pacified actor and cannot be released", a_victim->GetFormID(), a_victim->GetDisplayFullName());
 			return;
 		} else if (auto ref = a_victim->GetObjectReference(); !ref) {
-			// Actor is likely unloaded, keywords will hence be reset when they load back in anyway so this isnt exactly an issue
 			logger::warn("{:X} ({}) has no associated reference, keywords will not be removed", a_victim->GetFormID(), a_victim->GetDisplayFullName());
 		} else {
 			ref->As<RE::BGSKeywordForm>()->RemoveKeyword(GameForms::Pacified);
 		}
+		Pacified.erase(a_victim->GetFormID());
 
 		logger::info("{:X} ({}) has been released", a_victim->GetFormID(), a_victim->GetDisplayFullName());
 	}
