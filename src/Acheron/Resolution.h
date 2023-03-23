@@ -20,7 +20,7 @@ namespace Acheron
 			};
 
 		public:
-			CONDITION_DATA(ConditionType a_type, const std::string& a_conditionobject);
+			CONDITION_DATA(ConditionType a_type, std::string a_conditionobject);
 			~CONDITION_DATA() = default;
 
 			_NODISCARD bool Check(RE::Actor* a_target) const;
@@ -111,19 +111,5 @@ namespace Acheron
 
 	private:
 		static inline std::vector<EventData> Events[Type::Total];
-	};
-
-	struct ParseException : public std::exception
-	{
-		template <class... Args>
-		ParseException(const std::string& a_errormsg, Args&&... a_args) :
-				error(fmt::format(a_errormsg, std::forward<Args>(a_args)...).c_str())	{}
-		~ParseException() = default;
-
-		const char* error;
-		const char* what()
-		{
-			return error;
-		}
 	};
 }

@@ -8,7 +8,7 @@ namespace Acheron
 	EventData::EventData(const std::string& a_filepath)
 	{
 		if (!a_filepath.ends_with(".yaml") && !a_filepath.ends_with(".yml"))
-			throw ParseException("Invalid file extension");
+			throw std::exception(fmt::format("Invalid file extension").c_str());
 
 		const auto root{ YAML::LoadFile(a_filepath) };
 		const auto v = root["Version"].IsDefined() ? root["Version"].as<int>() : 0;
@@ -16,16 +16,19 @@ namespace Acheron
 		case 1:
 			{
 				if (const auto req = root["Requirements"]; req.IsDefined()) {
+					if (!req.IsSequence())
+						throw std::exception(fmt::format("Requirements defined but not a sequence").c_str());
+
 					const auto plugins = req.as<std::vector<std::string>>();
 					for (auto&& plugin : plugins) {
 						if (RE::TESDataHandler::GetSingleton()->LookupModByName(plugin) == nullptr)
-							throw ParseException("Expected requirement not loaded: {}", plugin);
+							throw std::exception(fmt::format("Expected requirement not loaded: {}", plugin).c_str());
 					}
 				}
 
 				quest = FormFromString<RE::TESQuest*>(root["Quest"].as<std::string>());
 				if (!quest) {
-					throw ParseException("Unable to find quest: {}", root["Quest"].as<std::string>());
+					throw std::exception(fmt::format("Unable to find quest: {}", root["Quest"].as<std::string>()).c_str());
 				}
 
 				const auto setattribute = [this, &root]<class T>(const char* a_setting, T& a_attribute) {
@@ -53,23 +56,26 @@ namespace Acheron
 				setflag("Hidden", Flags::Hidden);
 
 				if (const auto cons = root["Conditions"]; cons.IsDefined()) {
-					using Type = CONDITION_DATA::ConditionType;
-					const auto makecondition = [&cons](std::vector<CONDITION_DATA>& v, const char* a_attribute, Type a_type) -> void {
+					using ConditionType = CONDITION_DATA::ConditionType;
+					const auto makecondition = [&cons](std::vector<CONDITION_DATA>& v, const char* a_attribute, ConditionType a_type) -> void {
 						if (!cons[a_attribute].IsDefined())
 							return;
 
-						v.emplace_back(a_type, cons[a_attribute].as<std::string>());
+						const auto conditions = cons[a_attribute].as<std::vector<std::string>>();
+						for (auto&& condition : conditions) {
+							v.emplace_back(a_type, condition);
+						}
 					};
 					auto& c1 = conditions[ConditionTarget::Victoire];
-					makecondition(c1, "RaceType", Type::Race);
-					makecondition(c1, "Faction", Type::Faction);
+					makecondition(c1, "RaceType", ConditionType::Race);
+					makecondition(c1, "Faction", ConditionType::Faction);
 					auto& c2 = conditions[ConditionTarget::Victim];
-					makecondition(c2, "VictimFaction", Type::Faction);
+					makecondition(c2, "VictimFaction", ConditionType::Faction);
 				}
 			}
 			break;
 		default:
-			throw ParseException("Invalid version: {}", v);
+			throw std::exception(fmt::format("Invalid version: {}", v).c_str());
 		}
 	}
 
@@ -89,25 +95,27 @@ namespace Acheron
 		return true;
 	}
 
-	EventData::CONDITION_DATA::CONDITION_DATA(ConditionType a_type, const std::string& a_conditionobject)
+	EventData::CONDITION_DATA::CONDITION_DATA(ConditionType a_type, std::string a_conditionobject) :
+		type(a_type)
 	{
 		switch (a_type) {
 		case ConditionType::Race:
 			{
-				value.racetype = a_conditionobject.c_str();
+				ToLower(a_conditionobject);
+				value.racetype = _strdup(a_conditionobject.c_str());
 			}
 			break;
 		case ConditionType::Faction:
 			{
 				const auto val = FormFromString<RE::TESFaction*>(a_conditionobject);
 				if (!val)
-					throw ParseException("Invalid Condition: {}", a_conditionobject);
+					throw std::exception(fmt::format("Invalid Condition: {}", a_conditionobject).c_str());
 
 				value.faction = val;
 			}
 			break;
 		default:
-			throw ParseException("Invalid Type: {}", a_type);
+			throw std::exception(fmt::format("Invalid Type: {}", a_type).c_str());
 		}
 	}
 
@@ -116,7 +124,8 @@ namespace Acheron
 		switch (type) {
 		case ConditionType::Race:
 			{
-				const auto r = Animation::GetRaceType(a_actor);
+				auto r{ Animation::GetRaceType(a_actor) };
+				ToLower(r);
 				return r == value.racetype;
 			}
 			break;
@@ -184,7 +193,7 @@ namespace Acheron
 			for (auto&& event : events) {
 				try {
 					// if (e.name != "NAME_MISSING")
-					save[t.second.data()][event.name] = event.weight;
+					save[t.second.data()][event.name] = static_cast<int32_t>(event.weight);
 				} catch (const std::exception& e) {
 					logger::error("Failed to save event weight for event {}: {}", event.name, e.what());
 				}
