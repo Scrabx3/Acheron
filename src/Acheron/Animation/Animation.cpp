@@ -2,69 +2,6 @@
 
 namespace Acheron
 {
-	std::vector<std::string> Animation::LookupAssaultAnimations(RE::Actor* a_victim, RE::Actor* a_partner, AssaultType a_type)
-	{
-		if (!IsNPC(a_victim))
-			return {};
-
-		const std::string racetype{ Animation::GetRaceType(a_partner) };
-		if (racetype.empty())
-			return {};
-
-		try {
-			static const auto root{ json::parse(std::ifstream{ CONFIGPATH("Assault.json") }) };
-			const auto where = root.find(racetype);
-			if (where == root.end() || !where->is_object())
-				return {};
-
-			const auto& node = *where;
-			switch (a_type) {
-			case AssaultType::LeadIn:
-				if (node.contains("LeadIn") && node["LeadIn"].is_array()) {
-					return node["LeadIn"].get<std::vector<std::string>>();
-				}
-				__fallthrough;
-			case AssaultType::Instant:
-				if (node.contains("Instant") && node["Instant"].is_array()) {
-					return node["Instant"].get<std::vector<std::string>>();
-				}
-				break;
-			case AssaultType::BreakFree:
-				if (node.contains("BreakFree") && node["BreakFree"].is_array()) {
-					return node["BreakFree"].get<std::vector<std::string>>();
-				} else {
-					logger::error("No break free animations for race type {}", racetype);
-					return { "IdleForceDefaultState"s, "StaggerStart"s };
-				}
-				break;
-			}
-		} catch (const std::exception& e) {
-			logger::error(e.what());
-		}
-		return {};
-	}
-
-	void Animation::SetPositions(const std::vector<RE::Actor*>& a_positions, RE::TESObjectREFR* a_center)
-	{
-		const auto centerPos = a_center->GetPosition();
-		const auto centerAng = a_center->GetAngle();
-
-		for (auto&& subject : a_positions) {
-			subject->data.angle = centerAng;
-			subject->SetPosition(centerPos, true);
-			subject->Update3DPosition(true);
-		}
-
-		const auto setposition = [centerAng, centerPos](RE::Actor* actor) {
-			for (size_t i = 0; i < 6; i++) {
-				std::this_thread::sleep_for(std::chrono::milliseconds(300));
-				actor->data.angle.z = centerAng.z;
-				actor->SetPosition(centerPos, false);
-			}
-		};
-		std::for_each(a_positions.begin(), a_positions.end(), [&setposition](RE::Actor* subject) { std::thread(setposition, subject).detach(); });
-	}
-
 	void Animation::PlayAnimation(RE::TESObjectREFR* a_reference, const char* a_animation)
 	{
 		SKSE::GetTaskInterface()->AddTask([=]() { a_reference->NotifyAnimationGraph(a_animation); });
