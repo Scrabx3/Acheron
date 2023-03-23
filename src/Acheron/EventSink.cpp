@@ -10,10 +10,9 @@ namespace Acheron
 			return EventResult::kContinue;
 
 		auto source = const_cast<RE::Actor*>(a_event->holder->As<RE::Actor>());
-		if (a_event->tag == "JumpLandEnd") {
-			SKSE::GetTaskInterface()->AddTask([=]() {
-				source->NotifyAnimationGraph("BleedoutStart");
-			});
+		// constexpr std::array events{ "MTState", "IdleStop", "JumpLandEnd" };
+		if (a_event->tag == "MTState") {
+			source->NotifyAnimationGraph("BleedoutStart");
 		}
 		return EventResult::kContinue;
 	}
