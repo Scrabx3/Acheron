@@ -217,7 +217,7 @@ namespace Acheron
 		for (auto& e : Events[type]) {
 			if (a_incombat && e.flags.none(EventData::Flags::InCombat) || !tp && e.flags.any(EventData::Flags::Teleport))
 				continue;
-			if (e.priority < priority || e.weight < 0)
+			if (e.priority < priority || e.weight <= 0)
 				continue;
 			if (!e.CheckConditions(a_victoires, a_victim))
 				continue;

@@ -106,7 +106,7 @@ namespace Acheron::Interface
 				};
 				for (size_t i = 0; i < defaults.size() + _options.size(); i++) {
 					// IDEA: Hidden flag?
-					const Option op = i < 4 ? defaults[i] : _options[i - 4];
+					const Option& op = i < 4 ? defaults[i] : _options[i - 4];
 					bool enabled = false;
 					if (op._id == "rescue") {
 						enabled = HasBeneficialPotion(RE::PlayerCharacter::GetSingleton());

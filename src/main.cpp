@@ -1,5 +1,7 @@
 #include "Acheron/EventSink.h"
 #include "Acheron/Hooks/Hooks.h"
+#include "Acheron/Interface/CustomMenu.h"
+#include "Acheron/Interface/HunterPride.h"
 #include "Acheron/Resolution.h"
 #include "Acheron/Validation.h"
 #include "Papyrus/Config.h"
@@ -118,7 +120,7 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 	}
 
 	Acheron::Interface::HunterPride::Register();
-	// Acheron::Interface::GameMenu::Register();
+	Acheron::Interface::CustomMenu::Register();
 	Acheron::Hooks::Install();
 
 	const auto serialization = SKSE::GetSerializationInterface();
