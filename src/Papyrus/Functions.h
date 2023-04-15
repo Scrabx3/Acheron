@@ -86,6 +86,7 @@ namespace Papyrus
 			REGISTERFUNC(StripActor, "Acheron");
 			REGISTERFUNC(GetMostEfficientPotion, "Acheron");
 			REGISTERFUNC(GetFollowers, "Acheron");
+			REGISTERFUNC(GetRaceType, "Acheron");
 		}
 	}
 
