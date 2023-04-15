@@ -32,6 +32,8 @@ set(CXX_FILES
 	src/Acheron/Interface/Interface.h
 	src/Acheron/Interface/HunterPride.h
 	src/Acheron/Interface/HunterPride.cpp
+	src/Acheron/Interface/CustomMenu.h
+	src/Acheron/Interface/CustomMenu.cpp
 
 	src/Papyrus/Config.h
 	src/Papyrus/Config.cpp

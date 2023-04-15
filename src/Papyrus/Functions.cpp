@@ -1,69 +1,111 @@
 #include "Papyrus/Functions.h"
 
 #include "Acheron/Animation/Animation.h"
+#include "Acheron/Interface/CustomMenu.h"
+#include "Acheron/Resolution.h"
+#include "Acheron/Defeat.h"
+#include "Acheron/Interface/HunterPride.h"
+
 namespace Papyrus
 {
-	void Defeat::DefeatActor(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* subject)
+	void Defeat::DefeatActor(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* a_actor)
 	{
-		if (!subject) {
+		if (!a_actor) {
 			a_vm->TraceStack("Cannot Defeat a none Actor", a_stackID);
 			return;
 		}
 		SKSE::GetTaskInterface()->AddTask([=]() {
-			Acheron::Defeat::DefeatActor(subject);
+			Acheron::Defeat::DefeatActor(a_actor);
 		});
 	}
 
-	void Defeat::RescueActor(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* subject, bool undopacify)
+	void Defeat::RescueActor(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* a_actor, bool undopacify)
 	{
-		if (!subject) {
+		if (!a_actor) {
 			a_vm->TraceStack("Cannot Rescue a none Actor", a_stackID);
 			return;
 		}
 		SKSE::GetTaskInterface()->AddTask([=]() {
-			Acheron::Defeat::RescueActor(subject, undopacify);
+			Acheron::Defeat::RescueActor(a_actor, undopacify);
 		});
 	}
 
-	void Defeat::PacifyActor(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* subject)
+	void Defeat::PacifyActor(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* a_actor)
 	{
-		if (!subject) {
+		if (!a_actor) {
 			a_vm->TraceStack("Cannot Pacify a none Actor", a_stackID);
 			return;
 		}
-		Acheron::Defeat::Pacify(subject);
+		Acheron::Defeat::Pacify(a_actor);
 	}
 
-	void Defeat::ReleaseActor(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* subject)
+	void Defeat::ReleaseActor(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* a_actor)
 	{
-		if (!subject) {
+		if (!a_actor) {
 			a_vm->TraceStack("Cannot reset Pacification. Actor is none.", a_stackID);
 			return;
 		}
-		Acheron::Defeat::UndoPacify(subject);
+		Acheron::Defeat::UndoPacify(a_actor);
 	}
 
-	bool Defeat::IsDefeated(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* subject)
+	bool Defeat::IsDefeated(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* a_actor)
 	{
-		if (!subject) {
+		if (!a_actor) {
 			a_vm->TraceStack("Cannot check Defeat Status. Actor is none", a_stackID);
 			return false;
 		}
-		return Acheron::Defeat::IsDefeated(subject);
+		return Acheron::Defeat::IsDefeated(a_actor);
 	}
 
-	bool Defeat::IsPacified(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* subject)
+	bool Defeat::IsPacified(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* a_actor)
 	{
-		if (!subject) {
+		if (!a_actor) {
 			a_vm->TraceStack("Cannot check Pacification. Actor is none", a_stackID);
 			return false;
 		}
-		return Acheron::Defeat::IsPacified(subject);
+		return Acheron::Defeat::IsPacified(a_actor);
 	}
 
 	std::vector<RE::Actor*> Defeat::GetDefeated(RE::StaticFunctionTag*, bool a_loadedonly)
 	{
 		return Acheron::Defeat::GetAllDefeated(a_loadedonly);
+	}
+
+	void Interface::OpenHunterPrideMenu(VM* a_vm, StackID a_stackID, RE::TESQuest*, RE::Actor* a_target)
+	{
+		if (!a_target) {
+			a_vm->TraceStack("Cannot open hunter pride menu with a null reference as target", a_stackID);
+			return;
+		}
+		Acheron::Interface::HunterPride::SetTarget(a_target);
+		Acheron::Interface::HunterPride::Show();
+	}
+
+	bool Interface::AddOption(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::BSFixedString a_id, std::string a_name, std::string a_url, std::string a_condition)
+	{
+		if (a_id.empty()) {
+			a_vm->TraceStack("id may not be empty", a_stackID);
+			return false;
+		}
+		return Acheron::Interface::HunterPride::AddOption(a_id, a_condition, a_name, a_url);
+	}
+
+	bool Interface::RemoveOption(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::BSFixedString a_id)
+	{
+		if (a_id.empty()) {
+			a_vm->TraceStack("id may not be empty", a_stackID);
+			return false;
+		}
+		return Acheron::Interface::HunterPride::RemoveOption(a_id);
+	}
+
+	bool Interface::HasOption(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::BSFixedString a_id)
+	{
+		if (a_id.empty()) {
+			a_vm->TraceStack("id may not be empty", a_stackID);
+			return false;
+		}
+		return Acheron::Interface::HunterPride::HasOption(a_id);
 	}
 
 	void ObjectRef::SetLinkedRef(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::TESObjectREFR* object, RE::TESObjectREFR* target, RE::BGSKeyword* keyword)
@@ -75,30 +117,29 @@ namespace Papyrus
 		object->extraList.SetLinkedRef(target, keyword);
 	}
 
-
-	std::vector<RE::TESObjectARMO*> Actor::GetWornArmor(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* subject, uint32_t ignoredmasks)
+	std::vector<RE::TESObjectARMO*> Actor::GetWornArmor(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* a_actor, uint32_t ignoredmasks)
 	{
-		if (!subject) {
+		if (!a_actor) {
 			a_vm->TraceStack("Cannot get worn armor from a none reference", a_stackID);
 			return {};
 		}
-		return Acheron::GetWornArmor(subject, ignoredmasks);
+		return Acheron::GetWornArmor(a_actor, ignoredmasks);
 	}
 
-	std::vector<RE::TESObjectARMO*> Actor::StripActor(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* subject, uint32_t ignoredmasks)
+	std::vector<RE::TESObjectARMO*> Actor::StripActor(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* a_actor, uint32_t ignoredmasks)
 	{
-		if (!subject) {
+		if (!a_actor) {
 			a_vm->TraceStack("Cannot strip a none reference", a_stackID);
 			return {};
 		}
 		const auto em = RE::ActorEquipManager::GetSingleton();
-		const auto armors = Acheron::GetWornArmor(subject, ignoredmasks);
+		const auto armors = Acheron::GetWornArmor(a_actor, ignoredmasks);
 		std::vector<RE::TESObjectARMO*> ret{};
 		for (auto& armor : armors) {
 			if (armor->ContainsKeywordString("NoStrip")) {
 				continue;
 			}
-			em->UnequipObject(subject, armor);
+			em->UnequipObject(a_actor, armor);
 			ret.push_back(armor);
 		}
 		return ret;
@@ -139,19 +180,19 @@ namespace Papyrus
 		}
 	}
 
-	RE::AlchemyItem* Actor::GetMostEfficientPotion(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* subject, RE::TESObjectREFR* container)
+	RE::AlchemyItem* Actor::GetMostEfficientPotion(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* a_actor, RE::TESObjectREFR* container)
 	{
 		using Flag = RE::EffectSetting::EffectSettingData::Flag;
-		if (!subject) {
+		if (!a_actor) {
 			a_vm->TraceStack("Actor is none", a_stackID);
 			return nullptr;
 		} else if (!container) {
 			a_vm->TraceStack("Container Reference is none", a_stackID);
 			return nullptr;
 		}
-		const float tmphp = subject->GetActorValueModifier(RE::ACTOR_VALUE_MODIFIER::kTemporary, RE::ActorValue::kHealth);
-		const float maxhp = subject->GetPermanentActorValue(RE::ActorValue::kHealth) + tmphp;
-		const float missinghp = maxhp - subject->GetActorValue(RE::ActorValue::kHealth);
+		const float tmphp = a_actor->GetActorValueModifier(RE::ACTOR_VALUE_MODIFIER::kTemporary, RE::ActorValue::kHealth);
+		const float maxhp = a_actor->GetPermanentActorValue(RE::ActorValue::kHealth) + tmphp;
+		const float missinghp = maxhp - a_actor->GetActorValue(RE::ActorValue::kHealth);
 		RE::AlchemyItem* ret = nullptr;
 		float closest = FLT_MAX;
 		const auto inventory = container->GetInventory();
@@ -198,41 +239,35 @@ namespace Papyrus
 		return Acheron::GetFollowers();
 	}
 
-	void Interface::OpenHunterPrideMenu(VM* a_vm, StackID a_stackID, RE::TESQuest*, RE::Actor* a_target)
+	std::string Actor::GetRaceType(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* a_actor)
 	{
-		if (!a_target) {
-			a_vm->TraceStack("Cannot open hunter pride menu with a null reference as target", a_stackID);
-			return;
+		if (!a_actor) {
+			a_vm->TraceStack("Cannot get racetype from a none reference", a_stackID);
+			return ""s;
 		}
-		Acheron::Interface::HunterPride::SetTarget(a_target);
-		Acheron::Interface::HunterPride::Show();
+		return Acheron::Animation::GetRaceType(a_actor);
 	}
 
-	bool Interface::AddOption(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::BSFixedString a_id, std::string a_name, std::string a_url, std::string a_condition)
+	bool Utility::OpenCustomMenu(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, std::string_view a_filepath)
 	{
-		if (a_id.empty()) {
-			a_vm->TraceStack("id may not be empty", a_stackID);
+		if (a_filepath.empty()) {
+			a_vm->TraceStack("File path to swf file is empty", a_stackID);
+			return false;
+		} else if (!a_filepath.ends_with(".swf") || !fs::exists("Data\\Interface"s + a_filepath.data())) {
+			a_vm->TraceStack("File path does not lead to a valid file", a_stackID);
 			return false;
 		}
-		return Acheron::Interface::HunterPride::AddOption(a_id, a_condition, a_name, a_url);
+
+		if (Acheron::Interface::CustomMenu::IsOpen()) {
+			return false;
+		}
+		Acheron::Interface::CustomMenu::Show(a_filepath);
+		return true;
 	}
 
-	bool Interface::RemoveOption(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::BSFixedString a_id)
+	void Utility::CloseCustomMenu(RE::StaticFunctionTag*)
 	{
-		if (a_id.empty()) {
-			a_vm->TraceStack("id may not be empty", a_stackID);
-			return false;
-		}
-		return Acheron::Interface::HunterPride::RemoveOption(a_id);
-	}
-
-	bool Interface::HasOption(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::BSFixedString a_id)
-	{
-		if (a_id.empty()) {
-			a_vm->TraceStack("id may not be empty", a_stackID);
-			return false;
-		}
-		return Acheron::Interface::HunterPride::HasOption(a_id);
+		Acheron::Interface::CustomMenu::Hide();
 	}
 
 }	 // namespace Papyrus

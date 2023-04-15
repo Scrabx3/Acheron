@@ -386,7 +386,7 @@ namespace Acheron
 		}
 		std::string raceid{ race->GetFormEditorID() };
 		ToLower(raceid);
-		constexpr std::array editorids{ "child", "enfant", "little", "teen" };
+		constexpr std::array editorids{ "child", "enfant" };
 		for (auto&& i : editorids) {
 			if (raceid.find(i) != std::string::npos)
 				return false;

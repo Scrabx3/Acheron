@@ -23,12 +23,4 @@ namespace Acheron::Interface
 		}
 	};
 
-	class InvalidFile : public std::exception
-	{
-		virtual const char* what() const throw()
-		{
-			return "Unable to open .swf, bad or missing file";
-		}
-	};
-
 }

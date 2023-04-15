@@ -1,9 +1,5 @@
 #pragma once
 
-#include "Acheron/Resolution.h"
-#include "Acheron/Defeat.h"
-// #include "Acheron/Interface/GameMenu.h"
-#include "Acheron/Interface/HunterPride.h"
 #include "Acheron/Misc.h"
 
 namespace Papyrus
@@ -25,12 +21,12 @@ namespace Papyrus
 
 	namespace Defeat
 	{
-		void DefeatActor(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* subject);
-		void RescueActor(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* subject, bool undo_pacify);
-		void PacifyActor(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* subject);
-		void ReleaseActor(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* subject);
-		bool IsDefeated(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* subject);
-		bool IsPacified(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* subject);
+		void DefeatActor(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* a_actor);
+		void RescueActor(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* a_actor, bool undo_pacify);
+		void PacifyActor(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* a_actor);
+		void ReleaseActor(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* a_actor);
+		bool IsDefeated(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* a_actor);
+		bool IsPacified(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* a_actor);
 
 		std::vector<RE::Actor*> GetDefeated(RE::StaticFunctionTag*, bool a_loadedonly);
 
@@ -44,44 +40,6 @@ namespace Papyrus
 			REGISTERFUNC(IsPacified, "Acheron");
 
 			REGISTERFUNC(GetDefeated, "Acheron");
-		}
-	}
-
-	namespace ObjectRef
-	{
-		void SetLinkedRef(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::TESObjectREFR* object, RE::TESObjectREFR* target, RE::BGSKeyword* keyword);
-		void RemoveAllItems(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::TESObjectREFR* transferfrom, RE::TESObjectREFR* transferto, bool excludeworn);
-
-		inline void Register(VM* a_vm)
-		{
-			REGISTERFUNC(SetLinkedRef, "Acheron");
-			REGISTERFUNC(RemoveAllItems, "Acheron");
-		}
-	}
-
-	namespace Actor
-	{
-		std::vector<RE::TESObjectARMO*> GetWornArmor(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* subject, uint32_t ignoredmasks);
-		std::vector<RE::TESObjectARMO*> StripActor(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* subject, uint32_t ignoredmasks);
-		RE::AlchemyItem* GetMostEfficientPotion(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* subject, RE::TESObjectREFR* container);
-		std::vector<RE::Actor*> GetFollowers(RE::StaticFunctionTag*);
-
-		inline void Register(VM* a_vm)
-		{
-			REGISTERFUNC(GetWornArmor, "Acheron");
-			REGISTERFUNC(StripActor, "Acheron");
-			REGISTERFUNC(GetMostEfficientPotion, "Acheron");
-			REGISTERFUNC(GetFollowers, "Acheron");
-		}
-	}
-
-	namespace Utility
-	{
-		inline void PrintConsole(RE::StaticFunctionTag*, RE::BSFixedString a_msg) { Acheron::PrintConsole(a_msg.c_str()); }
-	
-		inline void Register(VM* a_vm)
-		{
-			REGISTERFUNC(PrintConsole, "Acheron");
 		}
 	}
 
@@ -100,6 +58,48 @@ namespace Papyrus
 			REGISTERFUNC(HasOption, "Acheron");
 
 			REGISTERFUNC(OpenHunterPrideMenu, "AcheronHunterPride");
+		}
+	}
+	namespace ObjectRef
+	{
+		void SetLinkedRef(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::TESObjectREFR* object, RE::TESObjectREFR* target, RE::BGSKeyword* keyword);
+		void RemoveAllItems(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::TESObjectREFR* transferfrom, RE::TESObjectREFR* transferto, bool excludeworn);
+
+		inline void Register(VM* a_vm)
+		{
+			REGISTERFUNC(SetLinkedRef, "Acheron");
+			REGISTERFUNC(RemoveAllItems, "Acheron");
+		}
+	}
+
+	namespace Actor
+	{
+		std::vector<RE::TESObjectARMO*> GetWornArmor(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* a_actor, uint32_t ignoredmasks);
+		std::vector<RE::TESObjectARMO*> StripActor(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* a_actor, uint32_t ignoredmasks);
+		RE::AlchemyItem* GetMostEfficientPotion(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* a_actor, RE::TESObjectREFR* container);
+		std::vector<RE::Actor*> GetFollowers(RE::StaticFunctionTag*);
+		std::string GetRaceType(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* a_actor);
+
+		inline void Register(VM* a_vm)
+		{
+			REGISTERFUNC(GetWornArmor, "Acheron");
+			REGISTERFUNC(StripActor, "Acheron");
+			REGISTERFUNC(GetMostEfficientPotion, "Acheron");
+			REGISTERFUNC(GetFollowers, "Acheron");
+		}
+	}
+
+	namespace Utility
+	{
+		inline void PrintConsole(RE::StaticFunctionTag*, RE::BSFixedString a_msg) { Acheron::PrintConsole(a_msg.c_str()); }
+		bool OpenCustomMenu(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, std::string_view a_filepath);
+		void CloseCustomMenu(RE::StaticFunctionTag*);
+	
+		inline void Register(VM* a_vm)
+		{
+			REGISTERFUNC(PrintConsole, "Acheron");
+			REGISTERFUNC(OpenCustomMenu, "Acheron");
+			REGISTERFUNC(CloseCustomMenu, "Acheron");
 		}
 	}
 
