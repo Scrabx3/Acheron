@@ -253,7 +253,7 @@ namespace Papyrus
 		if (a_filepath.empty()) {
 			a_vm->TraceStack("File path to swf file is empty", a_stackID);
 			return false;
-		} else if (!a_filepath.ends_with(".swf") || !fs::exists("Data\\Interface"s + a_filepath.data())) {
+		} else if (!fs::exists(fmt::format("Data\\Interface\\{}.swf", a_filepath))) {
 			a_vm->TraceStack("File path does not lead to a valid file", a_stackID);
 			return false;
 		}
@@ -261,7 +261,9 @@ namespace Papyrus
 		if (Acheron::Interface::CustomMenu::IsOpen()) {
 			return false;
 		}
-		Acheron::Interface::CustomMenu::Show(a_filepath);
+
+		Acheron::Interface::CustomMenu::SetSwfPath(a_filepath);
+		Acheron::Interface::CustomMenu::Show();
 		return true;
 	}
 

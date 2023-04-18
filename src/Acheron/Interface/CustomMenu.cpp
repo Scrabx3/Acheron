@@ -12,15 +12,13 @@ namespace Acheron::Interface
 	CustomMenu::CustomMenu() :
 		RE::IMenu()
 	{
-		this->inputContext = Context::kCursor;
+		this->inputContext = Context::kNone;
 		this->depthPriority = 3;
 		this->menuFlags.set(
-			// Flag::kPausesGame,
-			Flag::kUsesMenuContext,
-			Flag::kUsesCursor,
-			// Flag::kDisablePauseMenu,
 			Flag::kCustomRendering,
-			Flag::kApplicationMenu);
+			Flag::kAssignCursorToRenderer,
+			Flag::kUsesMenuContext,
+			Flag::kDisablePauseMenu);
 
 		auto scaleform = RE::BSScaleformManager::GetSingleton();
 		[[maybe_unused]] bool success = scaleform->LoadMovieEx(this, filepath, [](RE::GFxMovieDef* a_def) -> void {
@@ -31,7 +29,8 @@ namespace Acheron::Interface
 		assert(success);
 
 		auto view = this->uiMovie;
-		view->SetMouseCursorCount(1);
+		view->SetMouseCursorCount(0);
+		FunctionManager::AttachSKSEFunctions(view);
 	}
 
 	void CustomMenu::Register()
@@ -51,23 +50,6 @@ namespace Acheron::Interface
 		// }
 		return RE::IMenu::ProcessMessage(a_message);
 	}
-
-	void CustomMenu::Show(std::string_view a_filepath)
-	{
-		filepath = a_filepath;
-		RE::UIMessageQueue::GetSingleton()->AddMessage(NAME, RE::UI_MESSAGE_TYPE::kShow, nullptr);
-	}
-
-	void CustomMenu::Hide()
-	{
-		RE::UIMessageQueue::GetSingleton()->AddMessage(NAME, RE::UI_MESSAGE_TYPE::kHide, nullptr);
-	}
-
-	bool CustomMenu::IsOpen()
-	{
-		return RE::UI::GetSingleton()->IsMenuOpen(NAME);
-	}
-
 }
 
 
