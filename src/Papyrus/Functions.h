@@ -45,9 +45,10 @@ namespace Papyrus
 
 	namespace Interface
 	{
-		bool AddOption(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::BSFixedString a_id, std::string a_name, std::string a_url, std::string a_condition);
+		int AddOption(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::BSFixedString a_id, std::string a_name, std::string a_url, std::string a_condition);
 		bool RemoveOption(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::BSFixedString a_id);
 		bool HasOption(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::BSFixedString a_id);
+		int GetOptionID(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::BSFixedString a_id);
 
 		void OpenHunterPrideMenu(VM* a_vm, StackID a_stackID, RE::TESQuest*, RE::Actor* a_target);
 
@@ -56,6 +57,7 @@ namespace Papyrus
 			REGISTERFUNC(AddOption, "Acheron");
 			REGISTERFUNC(RemoveOption, "Acheron");
 			REGISTERFUNC(HasOption, "Acheron");
+			REGISTERFUNC(GetOptionID, "Acheron");
 
 			REGISTERFUNC(OpenHunterPrideMenu, "AcheronHunterPride");
 		}

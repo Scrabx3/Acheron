@@ -15,10 +15,8 @@ namespace Acheron::Interface
 		this->inputContext = Context::kCursor;
 		this->depthPriority = 3;
 		this->menuFlags.set(
-				// Flag::kPausesGame,
 				Flag::kUsesMenuContext,
 				Flag::kUsesCursor,
-				// Flag::kDisablePauseMenu,
 				Flag::kCustomRendering,
 				Flag::kApplicationMenu);
 
@@ -56,17 +54,17 @@ namespace Acheron::Interface
 		logger::info("Registered Hunter Pride Menu");
 	}
 
-	bool HunterPride::AddOption(const RE::BSFixedString& a_option, const std::string& a_conditionstring, const std::string& a_name, const std::string& a_iconsrc)
+	int32_t HunterPride::AddOption(const RE::BSFixedString& a_option, const std::string& a_conditionstring, const std::string& a_name, const std::string& a_iconsrc)
 	{
 		if (!HasOption(a_option)) {
 			try {
 				_options.emplace_back(a_option, a_conditionstring, a_name, a_iconsrc);
-				return true;
+				return static_cast<int32_t>(_options.size() + 3);
 			} catch (const std::exception& e) {
 				logger::error("Error adding option: {}", e.what());
 			}
 		}
-		return false;
+		return -1;
 	}
 
 	bool HunterPride::RemoveOption(const RE::BSFixedString& a_option)
@@ -81,9 +79,20 @@ namespace Acheron::Interface
 
 	bool HunterPride::HasOption(const RE::BSFixedString& a_option)
 	{
-		return std::find_if(_options.begin(), _options.end(), [&a_option](Option& option) {
-			return option.GetID() == a_option;
-		}) != _options.end();
+		return GetOptionID(a_option) > -1;
+	}
+
+	int32_t HunterPride::GetOptionID(const RE::BSFixedString& a_option)
+	{
+		for (size_t i = 0; i < DEFAULT_OPTIONS.size(); i++) {
+			if (a_option == DEFAULT_OPTIONS[i])
+				return static_cast<int32_t>(i);
+		}
+		for (size_t i = 0; i < _options.size(); i++) {
+			if (a_option == _options[i].GetID())
+				return static_cast<int32_t>(i + 4);
+		}
+		return -1;
 	}
 
 	RE::UI_MESSAGE_RESULTS HunterPride::ProcessMessage(RE::UIMessage& a_message)
@@ -94,15 +103,15 @@ namespace Acheron::Interface
 		switch (*a_message.type) {
 		case Type::kShow:
 			{
-				constexpr auto vampire_cond = "{\"player\":{\"has\":{\"keywords\":[\"0xa82bb\"]}},\"target\":{\"not\":{\"keywords\":[\"0x13796\"]}}}";
+				constexpr auto vampire_cond = "{\"player\":{\"has\":{\"keywords\":[\"0xa82bb\"]}},\"target\":{\"not\":{\"keywords\":[\"0x13796\"]}, \"is\":[\"nonessential\"]}}";
 
 				std::vector<RE::GFxValue> args;
 				args.reserve(_options.size() + 4);
 				static const std::array defaults{
-					Option{ "rescue", "", "$Achr_Plunder", "Plunder.dds" },
-					Option{ "plunder", "", "$Achr_Execute", "Execute.dds" },
-					Option{ "execute", "", "$Achr_Rescue", "Rescue.dds" },
-					Option{ "vampire", vampire_cond, "$Achr_Vampire", "Vampire.dds" }
+					Option{ DEFAULT_OPTIONS[0], "", "$Achr_Rescue", "Rescue.dds" },
+					Option{ DEFAULT_OPTIONS[1], "", "$Achr_Plunder", "Plunder.dds" },
+					Option{ DEFAULT_OPTIONS[2], "{\"target\":{\"is\":[\"nonessential\"]}}", "$Achr_Execute", "Execute.dds" },
+					Option{ DEFAULT_OPTIONS[3], vampire_cond, "$Achr_Vampire", "Vampire.dds" }
 				};
 				for (size_t i = 0; i < defaults.size() + _options.size(); i++) {
 					// IDEA: Hidden flag?
@@ -133,9 +142,10 @@ namespace Acheron::Interface
 
 	void HunterPride::OnItemSelected::Call(Params& a_args)
 	{
-		RE::BSFixedString id{ a_args.args[0].GetString() };
-		logger::info("Selected HunterPride option: {}", id);
-		Serialization::EventManager::GetSingleton()->_hunterprideselect.QueueEvent(id, _target);
+		const RE::BSFixedString option_str {a_args.argCount > 0 ? a_args.args->GetString() : ""};
+		const auto option_id = option_str.empty() ? -1 : GetOptionID(option_str);
+		logger::info("Selected HunterPride option: {}", option_str);
+		Serialization::EventManager::GetSingleton()->_hunterprideselect.QueueEvent(option_id, _target);
 	}
 
 	void HunterPride::CloseComplete::Call(Params&)
@@ -188,6 +198,24 @@ namespace Acheron::Interface
 			};
 			helper(true);
 			helper(false);
+			const auto is = node->find("is");
+			if (node != root.end() && node->is_array()) {
+				for (auto&& cstr : *is) {
+					if (!cstr.is_string()) {
+						continue;
+					}
+					const auto str = cstr.get<std::string>();
+					if (str == "essential") {
+						ret.emplace_back(CType::Essential, false);
+					} else if (str == "nonessential") {
+						ret.emplace_back(CType::Essential, true);
+					} else if (str == "hostile") {
+						ret.emplace_back(CType::Hostile, false);
+					} else if (str == "nonhostile") {
+						ret.emplace_back(CType::Hostile, true);
+					}
+				}
+			}
 			return ret;
 		};
 		conditions[ConditionTarget::Player] = make_conditions("player");
@@ -218,6 +246,8 @@ namespace Acheron::Interface
 		case ConditionType::Keyword:
 			GetValue(value.keyword);
 			break;
+		default:
+			assert(("Invalid condition type", false));
 		}
 	}
 
@@ -230,6 +260,12 @@ namespace Acheron::Interface
 			break;
 		case ConditionType::Faction:
 			ret = a_target->IsInFaction(value.faction);
+			break;
+		case ConditionType::Essential:
+			ret = a_target->IsHostileToActor(RE::PlayerCharacter::GetSingleton());
+			break;
+		case ConditionType::Hostile:
+			ret = a_target->IsHostileToActor(RE::PlayerCharacter::GetSingleton());
 			break;
 		default:
 			return false;
@@ -309,6 +345,9 @@ namespace Acheron::Interface
 					case Option::CONDITION::ConditionType::Keyword:
 						formID = condition.value.keyword->GetFormID();
 						break;
+					default:
+						formID = 0;
+						break;
 					}
 					if (!a_intfc->WriteRecordData(formID)) {
 						logger::error("Failed to save condition attribute value ({})", formID);
@@ -331,14 +370,13 @@ namespace Acheron::Interface
 		std::string id{}, name{}, url{};
 
 		for (size_t i = 0; i < numRegs; i++) {
-			Option next{};
 			stl::read_string(a_intfc, id);
 			stl::read_string(a_intfc, name);
 			stl::read_string(a_intfc, url);
-
-			next._id = id;
-			next._name = name;
-			next._iconurl = url;
+			Option next{};
+			next._id = RE::BSFixedString{ id.c_str() };
+			next._name = std::string{ name.c_str() };
+			next._iconurl = std::string{ url.c_str() };
 
 			for (size_t j = 0; j < Option::ConditionTarget::Total; j++) {
 				size_t numCons;

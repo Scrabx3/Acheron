@@ -17,6 +17,12 @@
     "NOT": {
       "Keywords": [],
       "Factions": []
-    }
+    },
+    "IS": [
+      "Essential",
+      "NonEssential",
+      "Hostile",
+      "NonHostile"
+    ]
   }
 }

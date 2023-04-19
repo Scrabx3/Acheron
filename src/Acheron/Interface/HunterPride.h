@@ -9,6 +9,7 @@ namespace Acheron::Interface
 		using GRefCountBaseStatImpl::operator delete;
 
 	public:
+		static constexpr std::array DEFAULT_OPTIONS = { "rescue", "plunder", "execute", "vampire" };
 		static constexpr std::string_view NAME{ "AcheronHunterPride" };
 		static constexpr std::string_view FILEPATH{ "Acheron\\AcheronHunterPride" };
 
@@ -25,9 +26,10 @@ namespace Acheron::Interface
 		static void ForceHide() { RE::UIMessageQueue::GetSingleton()->AddMessage(NAME, RE::UI_MESSAGE_TYPE::kForceHide, nullptr); }
 		static bool IsOpen() { return RE::UI::GetSingleton()->IsMenuOpen(NAME); }
 
-		static bool AddOption(const RE::BSFixedString& a_option, const std::string& a_conditionstring, const std::string& a_name, const std::string& a_iconsrc);
+		static int32_t AddOption(const RE::BSFixedString& a_option, const std::string& a_conditionstring, const std::string& a_name, const std::string& a_iconsrc);
 		static bool RemoveOption(const RE::BSFixedString& a_option);
 		static bool HasOption(const RE::BSFixedString& a_option);
+		static int32_t GetOptionID(const RE::BSFixedString& a_option);
 
 		// Serialization
 		static void Save(SKSE::SerializationInterface* a_intfc);
@@ -52,26 +54,29 @@ namespace Acheron::Interface
 	private:
 		struct Option
 		{
-			friend HunterPride;
-
 			struct CONDITION
 			{
 				union ConditionValue
 				{
 					RE::TESFaction* faction;
 					RE::BGSKeyword* keyword;
+					bool boolean;
 				};
 
 				enum class ConditionType : uint8_t
 				{
 					Faction,
-					Keyword
+					Keyword,
+					Essential,
+					Hostile
 				};
 
 			public:
 				CONDITION(ConditionType a_type, const std::string& a_objstring, bool a_reverse);
+				CONDITION(ConditionType a_type, bool a_reverse) :
+					reverse(a_reverse), type(a_type) { assert(a_type == ConditionType::Essential || a_type == ConditionType::Hostile); }
 				CONDITION(ConditionType a_type, ConditionValue a_value, bool a_reverse) :
-						reverse(a_reverse), type(a_type), value(a_value) {}
+					reverse(a_reverse), type(a_type), value(a_value) {}
 				~CONDITION() = default;
 
 				_NODISCARD bool Check(RE::Actor* a_target) const;
@@ -100,7 +105,7 @@ namespace Acheron::Interface
 			_NODISCARD bool Check() const;
 			_NODISCARD const RE::BSFixedString& GetID() const;
 
-		private:
+		public:
 			RE::BSFixedString _id;
 			std::string _name;
 			std::string _iconurl;
@@ -109,7 +114,7 @@ namespace Acheron::Interface
 		};
 
 	private:
-		static inline std::vector<Option> _options;
 		static inline RE::Actor* _target;
+		static inline std::vector<Option> _options;
 	};
 }

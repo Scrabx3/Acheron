@@ -81,12 +81,13 @@ namespace Papyrus
 		Acheron::Interface::HunterPride::Show();
 	}
 
-	bool Interface::AddOption(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::BSFixedString a_id, std::string a_name, std::string a_url, std::string a_condition)
+	int Interface::AddOption(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::BSFixedString a_id, std::string a_name, std::string a_url, std::string a_condition)
 	{
 		if (a_id.empty()) {
 			a_vm->TraceStack("id may not be empty", a_stackID);
 			return false;
 		}
+		Acheron::ToLower(a_condition);
 		return Acheron::Interface::HunterPride::AddOption(a_id, a_condition, a_name, a_url);
 	}
 
@@ -106,6 +107,15 @@ namespace Papyrus
 			return false;
 		}
 		return Acheron::Interface::HunterPride::HasOption(a_id);
+	}
+
+	int Interface::GetOptionID(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::BSFixedString a_id)
+	{
+		if (a_id.empty()) {
+			a_vm->TraceStack("id may not be empty", a_stackID);
+			return false;
+		}
+		return Acheron::Interface::HunterPride::GetOptionID(a_id);
 	}
 
 	void ObjectRef::SetLinkedRef(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::TESObjectREFR* object, RE::TESObjectREFR* target, RE::BGSKeyword* keyword)
