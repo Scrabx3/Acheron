@@ -154,11 +154,15 @@ namespace Acheron
 		if (a_victim->IsInKillMove() || a_aggressor->IsInKillMove())
 			return false;
 		if (a_victim->IsPlayerRef()) {
-			if (!Settings::bPlayerDefeat)
+			if (!Settings::bPlayerDefeat) {
 				return false;
+			}
 		} else {
-			if (!Settings::bNPCDefeat)
-				return false;
+			if (!UsesHunterPride(a_aggressor)) {
+				if (!Settings::bNPCDefeat) {
+					return false;
+				}
+			}
 		}
 		if (auto ref = a_victim->GetObjectReference(); ref && ref->As<RE::BGSKeywordForm>()->HasKeywordID(0xD205E))	// ActorTypeGhost
 			return false;

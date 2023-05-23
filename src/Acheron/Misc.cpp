@@ -88,6 +88,11 @@ namespace Acheron
 		return a_actor->HasMagicEffect(GameForms::HunterPrideEffect);
 	}
 
+	bool UsesHunterPride(const RE::Actor* a_actor)
+	{
+		return a_actor->IsPlayerRef() || Settings::bHunterPrideFollower && a_actor->IsPlayerTeammate();
+	}
+
 	bool IsNPC(const RE::Actor* a_actor)
 	{
 		static const auto ActorTypeNPC = RE::TESForm::LookupByID<RE::BGSKeyword>(0x13794);

@@ -266,19 +266,15 @@ namespace Acheron
 	bool Hooks::ShouldDefeat(RE::Actor* a_victim, RE::Actor* a_aggressor, const bool lethal)
 	{
 		if ([a_aggressor]() -> bool {	// player related attack?
-					const auto helper = [](RE::Actor* a_actor) {
-						return a_actor->IsPlayerRef() || Settings::bHunterPrideFollower && a_actor->IsPlayerTeammate();
-					};
 					if (!a_aggressor->IsCommandedActor()) {
-						return helper(a_aggressor);
-					}
-					if (auto tmp = a_aggressor->GetCommandingActor(); tmp) {
-						return helper(tmp.get());
+						return UsesHunterPride(a_aggressor);
+					} else if (auto tmp = a_aggressor->GetCommandingActor(); tmp) {
+						return UsesHunterPride(tmp.get());
 					}
 					return false;
 				}()) {
 			auto player = RE::PlayerCharacter::GetSingleton();
-			if (!IsHunter(player) || !lethal)
+			if (!lethal || !IsHunter(player))
 				return false;
 		}
 

@@ -34,8 +34,8 @@ namespace Acheron
 	std::vector<RE::Actor*> GetFollowers();
 
 	bool IsHunter(RE::Actor* a_actor);
+	bool UsesHunterPride(const RE::Actor* a_actor);
 	bool IsNPC(const RE::Actor* a_actor);
-
 	bool IsDaedric(const RE::TESForm* a_form);
 
 	// ObjectReference

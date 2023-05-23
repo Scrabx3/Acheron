@@ -18,7 +18,7 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message)
 	case SKSE::MessagingInterface::kDataLoaded:
 		if (!Acheron::GameForms::LoadForms()) {
 			logger::critical("Unable to load plugin objects");
-			if (SKSE::WinAPI::MessageBox(nullptr, "Some game objects could not be loaded. This is usually due to a required game plugin not being loaded in your game. Please ensure that you have all requirements installed\n\nExit Game now? (Recommended yes)", "SexLab p+ Load Data", 0x00000004) == 6)
+			if (SKSE::WinAPI::MessageBox(nullptr, "Some game objects could not be loaded. This is usually due to a required game plugin not being loaded in your game. Please ensure that you have all requirements installed\n\nExit Game now? (Recommended yes)", "Acheron Load Data", 0x00000004) == 6)
 				std::_Exit(EXIT_FAILURE);
 			return;
 		}
@@ -30,22 +30,11 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message)
 	case SKSE::MessagingInterface::kNewGame:
 	case SKSE::MessagingInterface::kPostLoadGame:
 		{
-			auto player = RE::PlayerCharacter::GetSingleton();
-			auto playerbase = player->GetActorBase();
-			auto success = playerbase->AddPerk(Acheron::GameForms::InteractionPerk, 1);
-			if (success) {
-				// for (auto&& entry : Acheron::GameForms::InteractionPerk->perkEntries) {
-				// 	if (!entry)
-				// 		continue;
-
-				// 	entry->ApplyPerkEntry(player);
-				// }
-			} else {
-				logger::warn("Failed to add interaction perk to player");
-			}
+			const auto player = RE::PlayerCharacter::GetSingleton();
+			const auto base = player->GetActorBase();
+			bool success = base && base->AddPerk(Acheron::GameForms::InteractionPerk, 1);
+			logger::info("Added Interaction Perk to player ({})", success);
 		}
-		break;
-	case SKSE::MessagingInterface::kPostPostLoad:
 		break;
 	}
 }
