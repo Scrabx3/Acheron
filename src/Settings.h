@@ -44,8 +44,9 @@ struct Settings
 	static inline float fLethalNPC{ 100.0f };			// prevent NPC death chance
 
 	// Trauma
-	// static inline float fTraumeChance{ 1.0f };
-	// static inline float
+	static inline float bTraumeEnabled{ false };	// Defeated when staggered
+	static inline bool bTraumaHealth{ true };			// Consider current health
+	static inline float fTraumaMult{ 32.0f };
 
 	// Exposed
 	static inline int iStrips{ 1'066'390'941 };	 // Slots to recognize

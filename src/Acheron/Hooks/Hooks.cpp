@@ -159,20 +159,30 @@ namespace Acheron
 
 	void Hooks::WeaponHit(RE::Actor* a_target, RE::HitData& a_hitData)
 	{
-		const auto aggressor = a_hitData.aggressor.get();
-		if (a_target && aggressor && aggressor.get() != a_target && !a_target->IsCommandedActor() && IsNPC(a_target)) {
+		logger::info("Position : X {} Y {} Z {}", a_hitData.hitPosition.x, a_hitData.hitPosition.y, a_hitData.hitPosition.z);
+		logger::info("Direction : X {} Y {} Z {}", a_hitData.hitDirection.x, a_hitData.hitDirection.y, a_hitData.hitDirection.z);
+		const auto aggressor = a_hitData.aggressor.get().get();
+		if (a_target && aggressor && aggressor != a_target && !a_target->IsCommandedActor() && IsNPC(a_target)) {
 			if (Defeat::IsDamageImmune(a_target))
 				return;
-			if (Validation::CanProcessDamage() && Validation::ValidatePair(a_target, aggressor.get())) {
+			if (Validation::CanProcessDamage() && Validation::ValidatePair(a_target, aggressor)) {
 				const float hp = a_target->GetActorValue(RE::ActorValue::kHealth);
 				auto dmg = a_hitData.totalDamage + fabs(GetIncomingEffectDamage(a_target));
 				AdjustByDifficultyMult(dmg, aggressor->IsPlayerRef());
-				if (ShouldDefeat(a_target, aggressor.get(), hp <= dmg)) {
-					if (Processing::RegisterDefeat(a_target, aggressor.get())) {
+				if (ShouldDefeat(a_target, aggressor, hp <= dmg) || [&]() {
+						// stagger is physical hit exclusive
+						if (a_hitData.stagger <= 0 || !Settings::bTraumeEnabled)
+							return false;
+						// f(x,y) = (x^2 * (1 + d * (1 - y))) / 64; with d in [0; inf)
+						const auto h = Settings::bTraumaHealth ? 1 - GetAVPercent(a_target, RE::ActorValue::kHealth) : 0.3;
+						const auto f = (powf(a_hitData.stagger, 2) * (1 + Settings::fTraumaMult * h)) / 64;
+						return Random::draw<float>(0, 99.999f) < f;
+					}()) {
+					if (Processing::RegisterDefeat(a_target, aggressor)) {
 						RemoveDamagingSpells(a_target);
 						return;
 					}
-				} else if ((a_hitData.flags.underlying() & ((1 << 0) + (1 << 1))) == 0) {	 // blocked, blocked with weapon
+				} else if ((a_hitData.flags.underlying() & ((1 << 0) + (1 << 1))) == 0) {  // blocked, blocked with weapon
 					ValidateStrip(a_target);
 				}
 			}
@@ -263,50 +273,41 @@ namespace Acheron
 		return _DoDetect(viewer, target, detectval, unk04, unk05, unk06, pos, unk08, unk09, unk10);
 	}
 
-	bool Hooks::ShouldDefeat(RE::Actor* a_victim, RE::Actor* a_aggressor, const bool lethal)
+	bool Hooks::ShouldDefeat(RE::Actor* a_victim, RE::Actor* a_aggressor, bool a_lethal)
 	{
-		if ([a_aggressor]() -> bool {	// player related attack?
-					if (!a_aggressor->IsCommandedActor()) {
-						return UsesHunterPride(a_aggressor);
-					} else if (auto tmp = a_aggressor->GetCommandingActor(); tmp) {
-						return UsesHunterPride(tmp.get());
-					}
-					return false;
-				}()) {
+		if (UsesHunterPride(a_aggressor)) {
 			auto player = RE::PlayerCharacter::GetSingleton();
-			if (!lethal || !IsHunter(player))
+			if (!a_lethal || !IsHunter(player)) {
 				return false;
+			}
 		}
 
-		if (lethal) {
-			// lethal
+		if (a_lethal) {
 			using Flag = RE::Actor::BOOL_FLAGS;
 			bool protecc;
 			if (Settings::bLethalEssential && (a_victim->boolFlags.all(Flag::kEssential) || !a_aggressor->IsPlayerRef() && a_victim->boolFlags.all(Flag::kProtected)))
-				protecc = true;
-			else if (a_victim->IsPlayerRef())
-				protecc = Random::draw<float>(0, 99.5f) < Settings::fLethalPlayer;
-			else
-				protecc = Random::draw<float>(0, 99.5f) < Settings::fLethalNPC;
-			return protecc;
-		} else {
-			// Exposed
-			if (Settings::iExposed > 0 && Random::draw<float>(0, 99.5) < Settings::fExposedChance) {
-				const auto gear = GetWornArmor(a_victim, Settings::iStrips);
-				uint32_t occupied = 0;
-				for (auto& e : gear) {
-					auto kwd = e->As<RE::BGSKeywordForm>();
-					if (kwd && kwd->ContainsKeywordString("NoStrip"))
-						continue;
-					occupied += static_cast<decltype(occupied)>(e->GetSlotMask());
-				}
-				constexpr auto ign{ (1U << 1) + (1U << 5) + (1U << 6) + (1U << 9) + (1U << 11) + (1U << 12) + (1U << 13) + (1U << 15) + (1U << 20) + (1U << 21) + (1U << 31) };
-				auto t = std::popcount(occupied & (~ign));
-				if (t < Settings::iExposed)
-					return true;
-			}
-			// TODO: Trauma
+				return true;
+
+			return a_victim->IsPlayerRef() ?
+					   protecc = Random::draw<float>(0, 99.5f) < Settings::fLethalPlayer :
+					   protecc = Random::draw<float>(0, 99.5f) < Settings::fLethalNPC;
 		}
+
+		if (Settings::iExposed > 0 && Random::draw<float>(0, 99.5) < Settings::fExposedChance) {
+			const auto gear = GetWornArmor(a_victim, Settings::iStrips);
+			uint32_t occupied = 0;
+			for (auto& e : gear) {
+				auto kwd = e->As<RE::BGSKeywordForm>();
+				if (kwd && kwd->ContainsKeywordString("NoStrip"))
+					continue;
+				occupied += static_cast<decltype(occupied)>(e->GetSlotMask());
+			}
+			constexpr auto ign{ (1U << 1) + (1U << 5) + (1U << 6) + (1U << 9) + (1U << 11) + (1U << 12) + (1U << 13) + (1U << 15) + (1U << 20) + (1U << 21) + (1U << 31) };
+			auto t = std::popcount(occupied & (~ign));
+			if (t < Settings::iExposed)
+				return true;
+		}
+	
 		return false;
 	}
 

@@ -20,7 +20,7 @@ namespace Acheron
 		static uint8_t* DoDetect(RE::Actor* viewer, RE::Actor* target, int32_t& detectval, uint8_t& unk04, uint8_t& unk05, uint32_t& unk06, RE::NiPoint3& pos, float& unk08, float& unk09, float& unk10);
 
 		// Hit Processing
-		static bool ShouldDefeat(RE::Actor* a_victim, RE::Actor* a_aggressor, const bool lethal);
+		static bool ShouldDefeat(RE::Actor* a_victim, RE::Actor* a_aggressor, bool lethal);
 		static float GetTaperDamage(const float magnitude, const RE::EffectSetting::EffectSettingData& data);
 		static float GetExpectedHealthModification(RE::ActiveEffect* a_effect);
 		static float GetIncomingEffectDamage(RE::Actor* subject);
