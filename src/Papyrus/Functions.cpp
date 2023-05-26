@@ -155,6 +155,36 @@ namespace Papyrus
 		return ret;
 	}
 
+	std::vector<RE::TESForm*> ObjectRef::GetItemsByKeywords(
+		VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*,
+		RE::TESObjectREFR* a_container,
+		std::vector<RE::BGSKeyword*> a_kywds,
+		int32_t a_minvalue,
+		bool a_qstitms)
+	{
+		if (!a_container) {
+			a_vm->TraceStack("Cannot retrieve Items from a none reference", a_stackID);
+			return {};
+		}
+		std::vector<RE::TESForm*> ret{};
+
+		auto inventory = a_container->GetInventory();
+		for (const auto& [form, data] : inventory) {
+			if (!form->GetPlayable() || form->GetName()[0] == '\0')
+				continue;
+			if (!a_qstitms && data.second->IsQuestObject())
+				continue;
+			if (form->GetGoldValue() < a_minvalue)
+				continue;
+			if (!form->HasKeywordInArray(a_kywds, false))
+				continue;
+
+			ret.push_back(form);
+		}
+
+		return ret;
+	}
+
 	void ObjectRef::RemoveAllItems(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::TESObjectREFR* from, RE::TESObjectREFR* to, bool excludeworn)
 	{
 		if (!from) {
@@ -175,9 +205,9 @@ namespace Papyrus
 		for (const auto& [form, data] : inventory) {
 			if (!form->GetPlayable() || form->GetName()[0] == '\0')
 				continue;
-			else if (data.second->IsQuestObject())
+			if (data.second->IsQuestObject())
 				continue;
-			else if (data.second->IsWorn()) {
+			if (data.second->IsWorn()) {
 				if (excludeworn) {
 					continue;
 				}

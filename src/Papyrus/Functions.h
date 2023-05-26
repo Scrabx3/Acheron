@@ -65,12 +65,15 @@ namespace Papyrus
 	namespace ObjectRef
 	{
 		void SetLinkedRef(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::TESObjectREFR* object, RE::TESObjectREFR* target, RE::BGSKeyword* keyword);
-		void RemoveAllItems(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::TESObjectREFR* transferfrom, RE::TESObjectREFR* transferto, bool excludeworn);
+		std::vector<RE::TESForm*> GetItemsByKeywords(
+			VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::TESObjectREFR* a_container, std::vector<RE::BGSKeyword*> a_kywds, int32_t a_minvalue, bool a_qstitms);
+		void RemoveAllItems(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::TESObjectREFR* a_from, RE::TESObjectREFR* a_to, bool a_excludeworn);
 
 		inline void Register(VM* a_vm)
 		{
 			REGISTERFUNC(SetLinkedRef, "Acheron");
-			REGISTERFUNC(RemoveAllItems, "Acheron");
+			REGISTERFUNC(GetItemsByKeywords, "Acheron");
+			REGISTERFUNC(SetLinkedRef, "Acheron");
 		}
 	}
 
