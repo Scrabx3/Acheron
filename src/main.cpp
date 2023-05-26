@@ -33,7 +33,14 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message)
 			const auto player = RE::PlayerCharacter::GetSingleton();
 			const auto base = player->GetActorBase();
 			bool success = base && base->AddPerk(Acheron::GameForms::InteractionPerk, 1);
-			logger::info("Added Interaction Perk to player ({})", success);
+			if (success) {
+				logger::info("Added Interaction Perk to player");
+				for (auto& perkEntry : Acheron::GameForms::InteractionPerk->perkEntries) {
+					if (perkEntry) {
+						perkEntry->ApplyPerkEntry(player);
+					}
+				}
+			}
 		}
 		break;
 	}
