@@ -16,11 +16,12 @@ struct Settings
 	static inline bool ProcessingEnabled{ true };
 	static inline bool ConsequenceEnabled{ true };
 	static inline bool bCreatureDefeat{ false };
+	static inline bool bKillMove{ true };
 
 	// Hunter Pride
-	static inline int iHunterPrideKey{ -1 };					// hotkey to enable/disable hunter pride
-	static inline int iHunterPrideKeyMod{ -1 };				// modifier key for hunter pride activaition
-	static inline bool bHunterPrideFollower{ true };	// follower may onle defeat while hunter pride is active
+	static inline int iHunterPrideKey{ -1 };		  // hotkey to enable/disable hunter pride
+	static inline int iHunterPrideKeyMod{ -1 };		  // modifier key for hunter pride activaition
+	static inline bool bHunterPrideFollower{ true };  // follower may onle defeat while hunter pride is active
 
 	// Notifications
 	static inline bool bNotifyDefeat{ false };						// notify when a NPC gets knocked down
@@ -81,6 +82,7 @@ struct Settings
 		ENTRY(ProcessingEnabled),
 		ENTRY(ConsequenceEnabled),
 		ENTRY(bCreatureDefeat),
+		ENTRY(bKillMove),
 		ENTRY(iHunterPrideKey),
 		ENTRY(iHunterPrideKeyMod),
 		ENTRY(bHunterPrideFollower),

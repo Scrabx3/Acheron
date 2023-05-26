@@ -22,10 +22,12 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message)
 				std::_Exit(EXIT_FAILURE);
 			return;
 		}
+		Settings::bKillMove = Acheron::GameForms::KillMove->value != 0.0f;
 		Settings::Initialize();
 		Acheron::Validation::Initialize();
 		Acheron::Resolution::Initialize();
 		Acheron::EventHandler::GetSingleton()->Register();
+		Acheron::GameForms::KillMove->value = Settings::bKillMove;
 		break;
 	case SKSE::MessagingInterface::kNewGame:
 	case SKSE::MessagingInterface::kPostLoadGame:

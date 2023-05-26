@@ -16,6 +16,7 @@ namespace Papyrus
 	std::vector<int> GetEventWeights(VM* a_vm, StackID a_stackID, RE::TESQuest*, int a_type);
 	void SetEventWeight(VM* a_vm, StackID a_stackID, RE::TESQuest*, std::string a_event, int a_type, int a_newweight);
 
+	void UpdateKillmoveGlobal(VM* a_vm, StackID a_stackID, RE::TESQuest*);
 
 	inline bool RegisterConfig(VM* a_vm)
 	{
@@ -32,6 +33,8 @@ namespace Papyrus
 		REGISTERFUNCND(GetEvents, "AcheronMCM");
 		REGISTERFUNCND(GetEventWeights, "AcheronMCM");
 		REGISTERFUNCND(SetEventWeight, "AcheronMCM");
+
+		REGISTERFUNCND(UpdateKillmoveGlobal, "AcheronMCM");
 
 		return true;
 	}

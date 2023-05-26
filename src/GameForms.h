@@ -9,6 +9,9 @@ namespace Acheron
 	if (!form)                                                                                                               \
 		return false;
 
+		// Vanilla Game
+		static inline RE::TESGlobal* KillMove;
+
 		// Acheron Forms
 		static inline RE::BGSKeyword* Defeated;
 		static inline RE::BGSKeyword* Pacified;
@@ -28,6 +31,10 @@ namespace Acheron
 
 		[[nodiscard]] static bool LoadForms()
 		{
+			KillMove = RE::TESForm::LookupByID<RE::TESGlobal>(0x00100F19);
+			if (!KillMove)
+				return false;
+
 			LOOKUPFORM(Defeated, 0x801);
 			LOOKUPFORM(Pacified, 0x802);
 

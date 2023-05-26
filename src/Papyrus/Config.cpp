@@ -137,4 +137,10 @@ namespace Papyrus
 		return Acheron::Resolution::SetEventWeight(a_event.c_str(), Type(a_type), weight);
 	}
 
+
+	void UpdateKillmoveGlobal(VM*, StackID, RE::TESQuest*)
+	{
+		Acheron::GameForms::KillMove->value = Settings::bKillMove;
+	}
+
 }	 // namespace Papyrus
