@@ -129,7 +129,7 @@ namespace Acheron
 		if (!effects)
 			return;
 
-		float total = 0.0f;
+		float inc_damage = 0.0f;
 		for (const auto& effect : *effects) {
 			if (!effect || effect->flags.any(RE::ActiveEffect::Flag::kDispelled, RE::ActiveEffect::Flag::kInactive))
 				continue;
@@ -137,19 +137,21 @@ namespace Acheron
 			if (!a_target->IsPlayerRef()) {
 				const auto caster = effect->caster.get();
 				if (caster && caster->IsPlayerRef() && !IsHunter(caster.get())) {
-					total = 0.0f;
+					inc_damage = 0.0f;
 					break;
 				}
 			}
 			if (const float change = GetExpectedHealthModification(effect); change != 0) {
-				total += change / 20;	 // Only consider damage the spell would do within the next 50ms
+				inc_damage += change / 20;	// Only consider damage the spell would do within the next 50ms
 			}
 		}
-		if (total < 0 && a_target->GetActorValue(RE::ActorValue::kHealth) <= fabs(total)) {
+		if (inc_damage < 0 && a_target->GetActorValue(RE::ActorValue::kHealth) <= fabs(inc_damage)) {
 			auto aggressor = GetNearValidAggressor(a_target);
 			if (!aggressor || !Validation::ValidatePair(a_target, aggressor))
 				return;
-			if (!ShouldDefeat(a_target, aggressor, true))
+			if (GetProcessType(aggressor, true) != ProcessType::Lethal)
+				return;
+			if (!HandleLethal(a_target, aggressor))
 				return;
 			if (!Processing::RegisterDefeat(a_target, aggressor))
 				return;
@@ -167,17 +169,22 @@ namespace Acheron
 				const float hp = a_target->GetActorValue(RE::ActorValue::kHealth);
 				auto dmg = a_hitData.totalDamage + fabs(GetIncomingEffectDamage(a_target));
 				AdjustByDifficultyMult(dmg, aggressor->IsPlayerRef());
-				if (ShouldDefeat(a_target, aggressor, hp <= dmg) || [&]() {
-						if (a_hitData.stagger <= 0 || !Settings::bTraumeEnabled)
+				bool negate;
+				switch (GetProcessType(aggressor, hp <= dmg)) {
+				case ProcessType::Lethal:
+					negate = HandleLethal(a_target, aggressor);
+					break;
+				case ProcessType::Any:
+					negate = [&]() {
+						if (a_hitData.stagger == 0 || !Settings::bTraumaEnabled)
 							return false;
-						// f(x,y) = (x^2 * (1 + d * (1 - y))) / 64; with d in [0; inf)
+						// f(x,y) = (x^2 * (1 + d * (1 - y))) / 64; with x in (-inf, inf), y in [0; 1], d in [0; inf)
 						const auto y = Settings::bTraumaHealth ? GetAVPercent(a_target, RE::ActorValue::kHealth) : 0.7;
 						const auto f = (powf(a_hitData.stagger, 2) * (1 + Settings::fTraumaMult * (1 - y))) / 64;
-						const auto random = Random::draw<float>(0, 99.999f);
+						const auto random = Random::draw<float>(0.1f, 0.999f);
 						if (random < f)
 							return true;
-
-						if (Settings::fTraumeBackAttack <= 0)
+						if (Settings::fTraumeBackAttack <= 1)
 							return false;
 						const auto head = a_target->GetNodeByName("NPC Head [Head]");
 						if (head) {
@@ -190,9 +197,13 @@ namespace Acheron
 								return random < f * Settings::fTraumeBackAttack;
 							}
 						}
-
 						return false;
-					}()) {
+					}() || HandleExposed(a_target);
+					break;
+				default:
+					negate = false;
+				}
+				if (negate) {
 					if (Processing::RegisterDefeat(a_target, aggressor)) {
 						RemoveDamagingSpells(a_target);
 						return;
@@ -233,17 +244,38 @@ namespace Acheron
 			if (Validation::CanProcessDamage()) {
 				const auto caster = effect.caster.get();
 				if (caster && caster.get() != target && Validation::ValidatePair(target, caster.get())) {
-					const float health = target->GetActorValue(RE::ActorValue::kHealth);
-					float dmg = base->data.secondaryAV == RE::ActorValue::kHealth ? effect.magnitude * base->data.secondAVWeight : effect.magnitude;
-					dmg += GetIncomingEffectDamage(target);	 // + GetTaperDamage(effect.magnitude, data->data);
-					AdjustByDifficultyMult(dmg, caster->IsPlayerRef());
-					if (ShouldDefeat(target, caster.get(), health <= fabs(dmg) + 2)) {
-						if (Processing::RegisterDefeat(target, caster.get())) {
+					static std::vector<RE::FormID> cache{};
+					if (std::find(cache.begin(), cache.end(), target->formID) == cache.end()) {
+						const auto id = target->formID;
+						cache.push_back(id);
+						std::thread([id]() {
+							std::this_thread::sleep_for(800ms);
+							SKSE::GetTaskInterface()->AddTask([id]() {
+								cache.erase(std::find(cache.begin(), cache.end(), id));
+							});
+						}).detach();
+
+						const float health = target->GetActorValue(RE::ActorValue::kHealth);
+						float dmg = base->data.secondaryAV == RE::ActorValue::kHealth ? effect.magnitude * base->data.secondAVWeight : effect.magnitude;
+						dmg += GetIncomingEffectDamage(target);	 // + GetTaperDamage(effect.magnitude, data->data);
+						AdjustByDifficultyMult(dmg, caster->IsPlayerRef());
+						bool negate;
+						switch (GetProcessType(caster.get(), health <= fabs(dmg) + 2)) {
+						case ProcessType::Lethal:
+							negate = HandleLethal(target, caster.get());
+							break;
+						case ProcessType::Any:
+							negate = HandleExposed(target);
+							break;
+						default:
+							negate = false;
+						}
+						if (negate && Processing::RegisterDefeat(target, caster.get())) {
 							RemoveDamagingSpells(target);
 							return;
+						} else if (effect.spell->GetSpellType() != RE::MagicSystem::SpellType::kEnchantment) {
+							ValidateStrip(target);
 						}
-					} else if (effect.spell->GetSpellType() != RE::MagicSystem::SpellType::kEnchantment) {
-						ValidateStrip(target);
 					}
 				}
 			}
@@ -262,7 +294,7 @@ namespace Acheron
 
 			for (auto& e : spell->effects) {
 				auto base = e ? e->baseEffect : nullptr;
-				if (base && base->data.flags.underlying() & 4) {	// detremental
+				if (base && base->data.flags.underlying() & 4) {  // detremental
 					return false;
 				}
 			}
@@ -288,26 +320,32 @@ namespace Acheron
 		return _DoDetect(viewer, target, detectval, unk04, unk05, unk06, pos, unk08, unk09, unk10);
 	}
 
-	bool Hooks::ShouldDefeat(RE::Actor* a_victim, RE::Actor* a_aggressor, bool a_lethal)
+	Hooks::ProcessType Hooks::GetProcessType(RE::Actor* a_aggressor, bool a_lethal)
 	{
 		if (UsesHunterPride(a_aggressor)) {
 			auto player = RE::PlayerCharacter::GetSingleton();
 			if (!a_lethal || !IsHunter(player)) {
-				return false;
+				return ProcessType::None;
 			}
 		}
 
-		if (a_lethal) {
-			using Flag = RE::Actor::BOOL_FLAGS;
-			bool protecc;
-			if (Settings::bLethalEssential && (a_victim->boolFlags.all(Flag::kEssential) || !a_aggressor->IsPlayerRef() && a_victim->boolFlags.all(Flag::kProtected)))
-				return true;
+		return a_lethal ? ProcessType::Lethal : ProcessType::Any;
+	}
 
-			return a_victim->IsPlayerRef() ?
-					   protecc = Random::draw<float>(0, 99.5f) < Settings::fLethalPlayer :
-					   protecc = Random::draw<float>(0, 99.5f) < Settings::fLethalNPC;
-		}
+	bool Hooks::HandleLethal(RE::Actor* a_victim, RE::Actor* a_aggressor)
+	{
+		using Flag = RE::Actor::BOOL_FLAGS;
+		bool protecc;
+		if (Settings::bLethalEssential && (a_victim->boolFlags.all(Flag::kEssential) || !a_aggressor->IsPlayerRef() && a_victim->boolFlags.all(Flag::kProtected)))
+			return true;
 
+		return a_victim->IsPlayerRef() ?
+				   protecc = Random::draw<float>(0, 99.5f) < Settings::fLethalPlayer :
+				   protecc = Random::draw<float>(0, 99.5f) < Settings::fLethalNPC;
+	}
+
+	bool Hooks::HandleExposed(RE::Actor* a_victim)
+	{
 		if (Settings::iExposed > 0 && Random::draw<float>(0, 99.5) < Settings::fExposedChance) {
 			const auto gear = GetWornArmor(a_victim, Settings::iStrips);
 			uint32_t occupied = 0;
@@ -531,4 +569,4 @@ namespace Acheron
 		}
 	}
 
-}	 // namespace Hooks
+}  // namespace Hooks

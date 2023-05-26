@@ -8,6 +8,12 @@ namespace Acheron
 		static void Install();
 
 	private:
+		enum class ProcessType {
+			Lethal,
+			Any,
+			None,
+		};
+
 		// Hooks
 		static void CompileAndRun(RE::Script* a_script, RE::ScriptCompiler* a_compiler, RE::COMPILER_NAME a_name, RE::TESObjectREFR* a_targetRef);
 		static void UpdatePlayer(RE::PlayerCharacter* player, float delta);
@@ -20,7 +26,9 @@ namespace Acheron
 		static uint8_t* DoDetect(RE::Actor* viewer, RE::Actor* target, int32_t& detectval, uint8_t& unk04, uint8_t& unk05, uint32_t& unk06, RE::NiPoint3& pos, float& unk08, float& unk09, float& unk10);
 
 		// Hit Processing
-		static bool ShouldDefeat(RE::Actor* a_victim, RE::Actor* a_aggressor, bool lethal);
+		static ProcessType GetProcessType(RE::Actor* a_aggressor, bool a_lethal);
+		static bool HandleLethal(RE::Actor* a_victim, RE::Actor* a_aggressor);
+		static bool HandleExposed(RE::Actor* a_victim);
 		static float GetTaperDamage(const float magnitude, const RE::EffectSetting::EffectSettingData& data);
 		static float GetExpectedHealthModification(RE::ActiveEffect* a_effect);
 		static float GetIncomingEffectDamage(RE::Actor* subject);

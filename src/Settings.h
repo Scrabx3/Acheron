@@ -45,7 +45,7 @@ struct Settings
 	static inline float fLethalNPC{ 100.0f };
 
 	// Trauma
-	static inline float bTraumeEnabled{ false };
+	static inline bool bTraumaEnabled{ false };
 	static inline bool bTraumaHealth{ true };
 	static inline float fTraumaMult{ 32.0f };
 	static inline float fTraumeBackAttack{ 2.0f };
@@ -96,7 +96,7 @@ struct Settings
 		ENTRY(bLethalEssential),
 		ENTRY(fLethalPlayer),
 		ENTRY(fLethalNPC),
-		ENTRY(bTraumeEnabled),
+		ENTRY(bTraumaEnabled),
 		ENTRY(bTraumaHealth),
 		ENTRY(fTraumaMult),
 		ENTRY(fTraumeBackAttack),
