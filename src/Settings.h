@@ -39,24 +39,25 @@ struct Settings
 	static inline bool bKdFollowerUnload{ true };	 // Follower: Recover on unload
 
 	// Lethal
-	static inline bool bLethalEssential{ true };	// defeat essential NPC when they enter bleedout?
-	static inline float fLethalPlayer{ 100.0f };	// prevent player death  chance
-	static inline float fLethalNPC{ 100.0f };			// prevent NPC death chance
+	static inline bool bLethalEssential{ true };
+	static inline float fLethalPlayer{ 100.0f };
+	static inline float fLethalNPC{ 100.0f };
 
 	// Trauma
-	static inline float bTraumeEnabled{ false };	// Defeated when staggered
-	static inline bool bTraumaHealth{ true };			// Consider current health
+	static inline float bTraumeEnabled{ false };
+	static inline bool bTraumaHealth{ true };
 	static inline float fTraumaMult{ 32.0f };
+	static inline float fTraumeBackAttack{ 2.0f };
 
 	// Exposed
 	static inline int iStrips{ 1'066'390'941 };	 // Slots to recognize
-	static inline int iExposed{ 2 };						 // Min amount of slots equipped to NOT be exposed
+	static inline int iExposed{ 2 };			 // Min amount of slots equipped to NOT be exposed
 	static inline float fExposedChance{ 0.0f };	 // Chance for an exposed strike to defeat
 
 	// Stripping
-	static inline float fStripChance{ 0.0f };		// chance to get stripped
+	static inline float fStripChance{ 0.0f };
 	static inline float fStripDestroy{ 5.0f };	// Chance for stripped item to be destroyed
-	static inline bool bStripDrop{ false };			// should non destroyed items be dropped
+	static inline bool bStripDrop{ false };		// should non destroyed items be dropped
 
 	// Table for dynamic access
 	struct StringCmp
@@ -93,6 +94,10 @@ struct Settings
 		ENTRY(bLethalEssential),
 		ENTRY(fLethalPlayer),
 		ENTRY(fLethalNPC),
+		ENTRY(bTraumeEnabled),
+		ENTRY(bTraumaHealth),
+		ENTRY(fTraumaMult),
+		ENTRY(fTraumeBackAttack),
 		ENTRY(iStrips),
 		ENTRY(iExposed),
 		ENTRY(fExposedChance),

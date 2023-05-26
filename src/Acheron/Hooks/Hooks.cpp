@@ -159,8 +159,6 @@ namespace Acheron
 
 	void Hooks::WeaponHit(RE::Actor* a_target, RE::HitData& a_hitData)
 	{
-		logger::info("Position : X {} Y {} Z {}", a_hitData.hitPosition.x, a_hitData.hitPosition.y, a_hitData.hitPosition.z);
-		logger::info("Direction : X {} Y {} Z {}", a_hitData.hitDirection.x, a_hitData.hitDirection.y, a_hitData.hitDirection.z);
 		const auto aggressor = a_hitData.aggressor.get().get();
 		if (a_target && aggressor && aggressor != a_target && !a_target->IsCommandedActor() && IsNPC(a_target)) {
 			if (Defeat::IsDamageImmune(a_target))
@@ -170,13 +168,30 @@ namespace Acheron
 				auto dmg = a_hitData.totalDamage + fabs(GetIncomingEffectDamage(a_target));
 				AdjustByDifficultyMult(dmg, aggressor->IsPlayerRef());
 				if (ShouldDefeat(a_target, aggressor, hp <= dmg) || [&]() {
-						// stagger is physical hit exclusive
 						if (a_hitData.stagger <= 0 || !Settings::bTraumeEnabled)
 							return false;
 						// f(x,y) = (x^2 * (1 + d * (1 - y))) / 64; with d in [0; inf)
-						const auto h = Settings::bTraumaHealth ? 1 - GetAVPercent(a_target, RE::ActorValue::kHealth) : 0.3;
-						const auto f = (powf(a_hitData.stagger, 2) * (1 + Settings::fTraumaMult * h)) / 64;
-						return Random::draw<float>(0, 99.999f) < f;
+						const auto y = Settings::bTraumaHealth ? GetAVPercent(a_target, RE::ActorValue::kHealth) : 0.7;
+						const auto f = (powf(a_hitData.stagger, 2) * (1 + Settings::fTraumaMult * (1 - y))) / 64;
+						const auto random = Random::draw<float>(0, 99.999f);
+						if (random < f)
+							return true;
+
+						if (Settings::fTraumeBackAttack <= 0)
+							return false;
+						const auto head = a_target->GetNodeByName("NPC Head [Head]");
+						if (head) {
+							const auto& matrix = head->world.rotate;
+							RE::NiPoint2 vecTarget{ matrix.entry[0][1], matrix.entry[0][0] };
+							RE::NiPoint2 vecRelative{ aggressor->GetPositionX() - a_hitData.hitPosition.x, aggressor->GetPositionY() - a_hitData.hitPosition.y };
+							vecRelative.Unitize();
+							const auto res = vecTarget.Dot(vecRelative);
+							if (res < -0.92f) {	 // 157°
+								return random < f * Settings::fTraumeBackAttack;
+							}
+						}
+
+						return false;
 					}()) {
 					if (Processing::RegisterDefeat(a_target, aggressor)) {
 						RemoveDamagingSpells(a_target);
@@ -307,7 +322,7 @@ namespace Acheron
 			if (t < Settings::iExposed)
 				return true;
 		}
-	
+
 		return false;
 	}
 
