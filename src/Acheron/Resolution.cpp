@@ -8,74 +8,138 @@ namespace Acheron
 	EventData::EventData(const std::string& a_filepath)
 	{
 		if (!a_filepath.ends_with(".yaml") && !a_filepath.ends_with(".yml"))
-			throw std::exception(fmt::format("Invalid file extension").c_str());
+			throw std::exception("Invalid file extension");
 
-		const auto root{ YAML::LoadFile(a_filepath) };
-		const auto v = root["Version"].IsDefined() ? root["Version"].as<int>() : 0;
-		switch (v) {
+		auto root{ YAML::LoadFile(a_filepath) };
+		// Requirements
+		const auto version = root["Version"].IsDefined() ? root["Version"].as<int>() : 1;
+		if (const auto req = root["Requirements"]; req.IsDefined()) {
+			if (!req.IsSequence())
+				throw std::exception("Requirements defined but not a sequence");
+
+			const auto plugins = req.as<std::vector<std::string>>();
+			for (auto&& plugin : plugins) {
+				if (RE::TESDataHandler::GetSingleton()->LookupModByName(plugin) == nullptr)
+					throw std::exception(fmt::format("Requirement not loaded: {}", plugin).c_str());
+			}
+		}
+		// Quest
+		quest = FormFromString<RE::TESQuest*>(root["Quest"].as<std::string>());
+		if (!quest) {
+			throw std::exception(fmt::format("Unable to find quest: {}", root["Quest"].as<std::string>()).c_str());
+		}
+		// Attributes
+		const auto setattribute = [this, &root]<class T>(const char* a_setting, T& a_attribute) {
+			if (!root[a_setting].IsDefined())
+				return;
+
+			a_attribute = root[a_setting].as<T>();
+		};
+		setattribute("Name", name);
+		setattribute("Cooldown", cooldown);
+		switch (version) {
+		case 2:
+			{
+				uint8_t prio;
+				setattribute("Priority", prio);
+				if (prio >= Priority::p_Total) {
+					throw std::exception(fmt::format("Invalid priority: {}", prio).c_str());
+				}
+				priority = Priority(prio);
+			}
+			break;
 		case 1:
 			{
-				if (const auto req = root["Requirements"]; req.IsDefined()) {
-					if (!req.IsSequence())
-						throw std::exception(fmt::format("Requirements defined but not a sequence").c_str());
+				uint8_t prio;
+				setattribute("Priority", prio);
+				if (prio > 85) {
+					priority = Priority::StoryPriority;
+				} else if (prio > 50) {
+					priority = Priority::StoryGeneric;
+				} else if (prio > 0) {
+					priority = Priority::Common;
+				} else {
+					priority = Priority::Default;
+				}
+			}
+		default:
+			throw std::exception(fmt::format("Invalid version: {}", version).c_str());
+		}
+		// Flags
+		const auto setflag = [this, &root](const char* a_setting, Flags a_flag) {
+			if (!root[a_setting].IsDefined())
+				return;
 
-					const auto plugins = req.as<std::vector<std::string>>();
-					for (auto&& plugin : plugins) {
-						if (RE::TESDataHandler::GetSingleton()->LookupModByName(plugin) == nullptr)
-							throw std::exception(fmt::format("Expected requirement not loaded: {}", plugin).c_str());
+			if (root[a_setting].as<bool>()) {
+				flags.set(a_flag);
+			} else {
+				flags.reset(a_flag);
+			}
+		};
+		setflag("Teleport", Flags::Teleport);
+		setflag("InCombat", Flags::InCombat);
+		setflag("Hidden", Flags::Hidden);
+		// Consequences
+		if (const auto cons = root["Conditions"]; cons.IsDefined()) {
+			using ConditionType = CONDITION_DATA::ConditionType;
+			switch (version) {
+			case 2:
+				{
+					const auto makecondition = [](const YAML::Node& node, std::vector<CONDITION_DATA>& dest, ConditionType a_type) -> void {
+						if (!node.IsDefined()) {
+							return;
+						}
+						for (size_t i = 0; i < node.size(); i++) {
+							const auto it = node[i];
+							if (it.IsMap()) {
+								const auto entry = it.begin();
+								dest.emplace_back(a_type, entry->first.as<std::string>(), entry->second.as<bool>());
+							} else {
+								dest.emplace_back(a_type, it.as<std::string>(), true);
+							}
+						}
+					};
+					if (const auto node = cons["Assailant"]; node.IsDefined()) {
+						auto& dest = conditions[ConditionTarget::Assailant];
+						makecondition(node["RaceType"], dest, ConditionType::Race);
+						makecondition(node["Faction"], dest, ConditionType::Faction);
+						makecondition(node["Keyword"], dest, ConditionType::Keyword);
+					}
+					if (const auto node = cons["Victim"]; node.IsDefined()) {
+						auto& dest = conditions[ConditionTarget::Victim];
+						makecondition(node["Faction"], dest, ConditionType::Faction);
+						makecondition(node["Keyword"], dest, ConditionType::Keyword);
+						makecondition(node["Location"], dest, ConditionType::Location);
+						makecondition(node["Worldspace"], dest, ConditionType::WorldSpace);
+					}
+					if (const auto node = cons["Quest"]; node.IsDefined()) {
+						auto& dest = conditions[ConditionTarget::Unspecified];
+						makecondition(node["Completed"], dest, ConditionType::QuestDone);
+						makecondition(node["Running"], dest, ConditionType::QuestRunning);
 					}
 				}
-
-				quest = FormFromString<RE::TESQuest*>(root["Quest"].as<std::string>());
-				if (!quest) {
-					throw std::exception(fmt::format("Unable to find quest: {}", root["Quest"].as<std::string>()).c_str());
-				}
-
-				const auto setattribute = [this, &root]<class T>(const char* a_setting, T& a_attribute) {
-					if (!root[a_setting].IsDefined())
-						return;
-
-					a_attribute = root[a_setting].as<T>();
-				};
-				setattribute("Name", name);
-				setattribute("Cooldown", cooldown);
-				setattribute("Priority", priority);
-
-				const auto setflag = [this, &root](const char* a_setting, Flags a_flag) {
-					if (!root[a_setting].IsDefined())
-						return;
-
-					if (root[a_setting].as<bool>()) {
-						flags.set(a_flag);
-					} else {
-						flags.reset(a_flag);
-					}
-				};
-				setflag("Teleport", Flags::Teleport);
-				setflag("InCombat", Flags::InCombat);
-				setflag("Hidden", Flags::Hidden);
-
-				if (const auto cons = root["Conditions"]; cons.IsDefined()) {
-					using ConditionType = CONDITION_DATA::ConditionType;
+				break;
+			case 1:
+				{
 					const auto makecondition = [&cons](std::vector<CONDITION_DATA>& v, const char* a_attribute, ConditionType a_type) -> void {
 						if (!cons[a_attribute].IsDefined())
 							return;
 
 						const auto conditions = cons[a_attribute].as<std::vector<std::string>>();
 						for (auto&& condition : conditions) {
-							v.emplace_back(a_type, condition);
+							v.emplace_back(a_type, condition, true);
 						}
 					};
-					auto& c1 = conditions[ConditionTarget::Victoire];
+					auto& c1 = conditions[ConditionTarget::Assailant];
 					makecondition(c1, "RaceType", ConditionType::Race);
 					makecondition(c1, "Faction", ConditionType::Faction);
 					auto& c2 = conditions[ConditionTarget::Victim];
 					makecondition(c2, "VictimFaction", ConditionType::Faction);
 				}
+				break;
+			default:
+				throw std::exception(fmt::format("Invalid version: {}", version).c_str());
 			}
-			break;
-		default:
-			throw std::exception(fmt::format("Invalid version: {}", v).c_str());
 		}
 	}
 
@@ -85,19 +149,30 @@ namespace Acheron
 			if (!condition.Check(a_victim))
 				return false;
 		}
-		for (auto&& condition : conditions[ConditionTarget::Victoire]) {
+		for (auto&& condition : conditions[ConditionTarget::Assailant]) {
 			const auto w = std::find_if(a_victoires.begin(), a_victoires.end(), [&](RE::Actor* a_victoire) {
 				return condition.Check(a_victoire);
 			});
 			if (w == a_victoires.end())
 				return false;
 		}
+		for (auto&& condition : conditions[ConditionTarget::Unspecified]) {
+			if (!condition.Check(nullptr))
+				return false;
+		}
 		return true;
 	}
 
-	EventData::CONDITION_DATA::CONDITION_DATA(ConditionType a_type, std::string a_conditionobject) :
-		type(a_type)
+	EventData::CONDITION_DATA::CONDITION_DATA(ConditionType a_type, std::string a_conditionobject, bool a_compare) :
+		type(a_type), compare(a_compare)
 	{
+		const auto getval = [&]<typename T>(T& dest) {
+			const auto val = FormFromString<T>(a_conditionobject);
+			if (!val)
+				throw std::exception(fmt::format("Object does not represent a valid form: {}", a_conditionobject).c_str());
+			dest = val;
+		};
+
 		switch (a_type) {
 		case ConditionType::Race:
 			{
@@ -107,11 +182,28 @@ namespace Acheron
 			break;
 		case ConditionType::Faction:
 			{
-				const auto val = FormFromString<RE::TESFaction*>(a_conditionobject);
-				if (!val)
-					throw std::exception(fmt::format("Invalid Condition: {}", a_conditionobject).c_str());
-
-				value.faction = val;
+				getval(value.faction);
+			}
+			break;
+		case ConditionType::Keyword:
+			{
+				getval(value.keyword);
+			}
+			break;
+		case ConditionType::Location:
+			{
+				getval(value.location);
+			}
+			break;
+		case ConditionType::WorldSpace:
+			{
+				getval(value.worldspace);
+			}
+			break;
+		case ConditionType::QuestRunning:
+		case ConditionType::QuestDone:
+			{
+				getval(value.quest);
 			}
 			break;
 		default:
@@ -121,23 +213,50 @@ namespace Acheron
 
 	bool EventData::CONDITION_DATA::Check(RE::Actor* a_actor) const
 	{
+		bool result;
 		switch (type) {
 		case ConditionType::Race:
 			{
 				auto r{ Animation::GetRaceType(a_actor) };
 				ToLower(r);
-				return r == value.racetype;
+				result = r == value.racetype;
 			}
 			break;
 		case ConditionType::Faction:
 			{
-				return a_actor->IsInFaction(value.faction);
+				result = a_actor->IsInFaction(value.faction);
+			}
+			break;
+		case ConditionType::Keyword:
+			{
+				result = a_actor->HasKeyword(value.keyword);
+			}
+			break;
+		case ConditionType::Location:
+			{
+				result = a_actor->GetCurrentLocation() == value.location;
+			}
+			break;
+		case ConditionType::WorldSpace:
+			{
+				result = a_actor->GetWorldspace() == value.worldspace;
+			}
+			break;
+		case ConditionType::QuestDone:
+			{
+				result = value.quest->IsCompleted();
+			}
+			break;
+		case ConditionType::QuestRunning:
+			{
+				result = value.quest->IsRunning();
 			}
 			break;
 		default:
 			logger::error("Unrecognized type: {}", type);
 			return false;
 		}
+		return result == compare;
 	}
 
 	void Resolution::Initialize()
@@ -192,8 +311,8 @@ namespace Acheron
 			const auto& events = Events[t.first];
 			for (auto&& event : events) {
 				try {
-					// if (e.name != "NAME_MISSING")
-					save[t.second.data()][event.name] = static_cast<int32_t>(event.weight);
+					if (event.name != EventData::DEFAULT_NAME)
+						save[t.second.data()][event.name] = static_cast<int32_t>(event.weight);
 				} catch (const std::exception& e) {
 					logger::error("Failed to save event weight for event {}: {}", event.name, e.what());
 				}
@@ -215,9 +334,9 @@ namespace Acheron
 		int priority = 0, weights = 0;
 		std::vector<std::pair<RE::TESQuest*, decltype(weights)>> ret{};
 		for (auto& e : Events[type]) {
-			if (a_incombat && e.flags.none(EventData::Flags::InCombat) || !tp && e.flags.any(EventData::Flags::Teleport))
+			if (e.weight <= 0 || a_incombat && e.flags.none(EventData::Flags::InCombat) || !tp && e.flags.any(EventData::Flags::Teleport))
 				continue;
-			if (e.priority < priority || e.weight <= 0)
+			if (e.priority < priority)
 				continue;
 			if (!e.CheckConditions(a_victoires, a_victim))
 				continue;

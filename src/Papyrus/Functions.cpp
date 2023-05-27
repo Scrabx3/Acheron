@@ -176,7 +176,7 @@ namespace Papyrus
 				continue;
 			if (form->GetGoldValue() < a_minvalue)
 				continue;
-			if (!form->HasKeywordInArray(a_kywds, false))
+			if (!a_kywds.empty() && !form->HasKeywordInArray(a_kywds, false))
 				continue;
 
 			ret.push_back(form);

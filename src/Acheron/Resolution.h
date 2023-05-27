@@ -5,22 +5,33 @@ namespace Acheron
 	class EventData
 	{
 	public:
+		static constexpr const char* DEFAULT_NAME = "UNTITLED";
+
 		struct CONDITION_DATA
 		{
 			enum class ConditionType : uint8_t
 			{
 				Race,
-				Faction
+				Faction,
+				Keyword,
+				Location,
+				WorldSpace,
+				QuestDone,
+				QuestRunning,
 			};
 
 			union Condition
 			{
 				const char* racetype;
 				RE::TESFaction* faction;
+				RE::TESQuest* quest;
+				RE::BGSKeyword* keyword;
+				RE::BGSLocation* location;
+				RE::TESWorldSpace* worldspace;
 			};
 
 		public:
-			CONDITION_DATA(ConditionType a_type, std::string a_conditionobject);
+			CONDITION_DATA(ConditionType a_type, std::string a_conditionobject, bool a_compare);
 			~CONDITION_DATA() = default;
 
 			_NODISCARD bool Check(RE::Actor* a_target) const;
@@ -28,14 +39,14 @@ namespace Acheron
 		private:
 			ConditionType type;
 			Condition value;
+			bool compare;
 		};
 
 		enum ConditionTarget
 		{
-			Victoire = 0,
+			Assailant = 0,
 			Victim = 1,
-			// Unspecified = 2,	// IDEA: implement for things like quest stage conditioning
-
+			Unspecified = 2,	// IDEA: implement for things like quest stage conditioning
 			Total
 		};
 
@@ -44,6 +55,15 @@ namespace Acheron
 			Teleport = 1 << 0,	// Does the event teleport the victim away
 			InCombat = 1 << 1,	// Can the event start mid combat
 			Hidden = 1 << 2,		// Is the event hidden from the player, i.e. no settings displayed
+		};
+
+		enum Priority : uint8_t
+		{
+			Default = 0,
+			Common = 1,
+			StoryGeneric = 2,
+			StoryPriority = 3,
+			p_Total
 		};
 
 		/// @brief Construct a new quest object from a given file
@@ -62,11 +82,11 @@ namespace Acheron
 
 	public:
 		RE::TESQuest* quest = nullptr;
-		std::string name = "NAME_MISSING";
+		std::string name = DEFAULT_NAME;
 
-		uint16_t cooldown{0};
-		uint8_t priority{0};
-		uint8_t weight{50};
+		uint16_t cooldown{ 0 };
+		Priority priority{ Priority::Default };
+		uint8_t weight{ 50 };
 
 		stl::enumeration<Flags, uint8_t> flags{ Flags::Teleport };
 		std::vector<CONDITION_DATA> conditions[ConditionTarget::Total];
