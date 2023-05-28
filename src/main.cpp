@@ -90,9 +90,12 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 		log->set_level(spdlog::level::info);
 		log->flush_on(spdlog::level::info);
 #endif
-
 		spdlog::set_default_logger(std::move(log));
+#ifndef NDEBUG
 		spdlog::set_pattern("%s(%#): [%^%l%$] %v"s);
+#else
+		spdlog::set_pattern("[%^%l%$] %v"s);
+#endif
 
 		logger::info("{} v{}"sv, Plugin::NAME, Plugin::VERSION.string());
 		return true;
