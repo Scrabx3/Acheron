@@ -23,11 +23,12 @@ set(CXX_FILES
 	src/Acheron/Animation/Animation.h
 	src/Acheron/Animation/Animation.cpp
 
+	src/Acheron/Hooks/Console.h
+	src/Acheron/Hooks/Console.cpp
 	src/Acheron/Hooks/Hooks.h
 	src/Acheron/Hooks/Hooks.cpp
 	src/Acheron/Hooks/Processing.h
 	src/Acheron/Hooks/Processing.cpp
-	src/Acheron/Hooks/Console.h
 
 	src/Acheron/Interface/Interface.h
 	src/Acheron/Interface/HunterPride.h

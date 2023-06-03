@@ -2,102 +2,65 @@
 
 #include "Acheron/Defeat.h"
 
-namespace Acheron::Console
+namespace Acheron
 {
-	inline bool ParseCmd(const std::string_view& a_cmd, RE::TESObjectREFR* a_targetRef)
+	struct CommandBase
 	{
-		if (!a_cmd.starts_with("acheron"))
-			return false;
+		virtual ~CommandBase() = default;
 
-		std::vector<std::string> words{};
-		std::string next = ""s;
-		for (size_t i = 8; i < a_cmd.size(); i++) {
-			if (std::isspace(a_cmd[i])) {
-				if (!next.empty()) {
-					words.push_back(next);
-					next = ""s;
-				}
-				continue;
-			}
+		virtual bool Run(std::vector<std::string_view>& a_args, RE::TESObjectREFR* a_targetRef) const = 0;
+		RE::TESObjectREFR* ParseTargetRef(std::string_view a_targetStr) const;
+		RE::Actor* GetTargetActor(std::string_view a_targetStr, RE::TESObjectREFR* a_targetRef) const;
+	};
 
-			if (a_cmd[i] == '"') {
-				auto w = a_cmd.find('"', i + 1);
-				if (w == std::string_view::npos) {
-					PrintConsole("[Acheron] Unexpexted EOF");
-					return false;
-				}
-				words.emplace_back(a_cmd.substr(i + 1, w - i - 1));
-				i = w;
-				continue;
-			}
+	struct CmdHelp : public CommandBase
+	{
+		virtual bool Run(std::vector<std::string_view>& a_args, RE::TESObjectREFR* a_targetRef) const override;
+	};
 
-			next.push_back(a_cmd[i]);
-		}
-		if (!next.empty()) {
-			words.push_back(next);
-		}
-		if (words.empty()) {
-			PrintConsole("[Acheron] Unrecognized line. Use 'help' for a list of possible interactions");
-			return false;
-		}
+	struct CmdDefeat : public CommandBase
+	{
+		virtual bool Run(std::vector<std::string_view>& a_args, RE::TESObjectREFR* a_targetRef) const override;
+	};
 
-		const auto gettarget = [&](int idx) -> RE::Actor* {
-			if (words.size() > idx) {
-				auto& formid = words[idx];
-				if (formid == "player")
-					return RE::PlayerCharacter::GetSingleton();
+	struct CmdRescue : public CommandBase
+	{
+		virtual bool Run(std::vector<std::string_view>& a_args, RE::TESObjectREFR* a_targetRef) const override;
+	};
 
-				if (formid.find_first_not_of("0123456789abcdef") == std::string::npos && formid.length() <= 8) {
-					try {
-						int id = std::stoi(formid, nullptr, 16);
-						return RE::TESForm::LookupByID<RE::Actor>(id);
-					} catch (const std::exception&) {
-						return nullptr;
-					}
-				}
-				return nullptr;
-			}
-			if (a_targetRef && a_targetRef->Is(RE::FormType::ActorCharacter))
-				return a_targetRef->As<RE::Actor>();
+	struct CmdIsDefeated : public CommandBase
+	{
+		virtual bool Run(std::vector<std::string_view>& a_args, RE::TESObjectREFR* a_targetRef) const override;
+	};
 
-			return RE::PlayerCharacter::GetSingleton();
+	struct CmdPacify : public CommandBase
+	{
+		virtual bool Run(std::vector<std::string_view>& a_args, RE::TESObjectREFR* a_targetRef) const override;
+	};
+
+	struct CmdRelease : public CommandBase
+	{
+		virtual bool Run(std::vector<std::string_view>& a_args, RE::TESObjectREFR* a_targetRef) const override;
+	};
+
+	struct CmdIsPacified : public CommandBase
+	{
+		virtual bool Run(std::vector<std::string_view>& a_args, RE::TESObjectREFR* a_targetRef) const override;
+	};
+	
+	struct Console
+	{
+		static bool ParseCmd(std::string_view a_cmd, RE::TESObjectREFR* a_targetRef);
+
+	private:
+		static inline const std::map<std::string, std::shared_ptr<CommandBase>> commands{
+			{ "help"s, std::make_shared<CmdHelp>() },
+			{ "defeat"s, std::make_shared<CmdDefeat>() },
+			{ "rescue"s, std::make_shared<CmdRescue>() },
+			{ "isdefeated"s, std::make_shared<CmdIsDefeated>() },
+			{ "pacify"s, std::make_shared<CmdPacify>() },
+			{ "release"s, std::make_shared<CmdRelease>() },
+			{ "ispacified"s, std::make_shared<CmdIsPacified>() },
 		};
-		if (words[0] == "help") {
-			PrintConsole(
-					"[Acheron] Possible commands are:\n"
-					"\t\"Defeat <reference>\"\n"
-					"\t\"Rescue <reference>\"\n"
-					"\t\"Pacify <reference>\"\n"
-					"\t\"Release <reference>\"");
-		} else if (auto target = gettarget(1); !target) {
-			PrintConsole("[Acheron] Missing target reference");
-		} else if (words[0] == "defeat") {
-			if (Defeat::IsDefeated(target)) {
-				PrintConsole("[Acheron] Selected target actor is already defeated");
-			} else {
-				Defeat::DefeatActor(target);
-			}
-		} else if (words[0] == "rescue") {
-			if (Defeat::IsDefeated(target)) {
-				Defeat::RescueActor(target, true);
-			} else {
-				PrintConsole("[Acheron] Actor is not defeated");
-			}
-		} else if (words[0] == "pacify") {
-			if (Defeat::IsPacified(target)) {
-				PrintConsole("[Acheron] Selected target actor is already pacified");
-			} else {
-				Defeat::Pacify(target);
-			}
-		} else if (words[0] == "release") {
-			if (Defeat::IsPacified(target)) {
-				Defeat::UndoPacify(target);
-			} else {
-				PrintConsole("[Acheron] Actor is not pacified");
-			}
-		} else {
-			PrintConsole("[Acheron] Unrecognized line. Use 'help' for a list of possible interactions");
-		}
-		return true;
-	}
-}	 // namespace Acheron::Console
+	};
+}  // namespace Acheron::Console

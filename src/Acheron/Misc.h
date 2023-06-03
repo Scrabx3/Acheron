@@ -6,9 +6,8 @@ namespace Acheron
 	/// @param a_string a string representing the object, given as "FormID|plugin"
 	/// @return The object represented by the string or 0 if the string is invalid
 	template <typename T>
-	static T FormFromString(const std::string_view& a_string)
+	static T FormFromString(const std::string_view a_string, int base)
 	{
-		const auto base = a_string.starts_with("0x") ? 16 : 10;
 		const auto split = a_string.find("|");
 		const auto formid = std::stoi(a_string.substr(0, split).data(), nullptr, base);
 		if constexpr (std::is_pointer<T>::value) {
@@ -28,9 +27,22 @@ namespace Acheron
 		}
 	}
 
+	template <typename T>
+	static T FormFromString(const std::string_view a_string)
+	{
+		const size_t base = a_string.starts_with("0x") ? 16 : 10;
+		return FormFromString<T>(a_string, base);
+	}
+
 	// Debug
-	inline void PrintConsole(const std::string& a_msg) { RE::ConsoleLog::GetSingleton()->Print(a_msg.c_str()); }
+	inline void PrintConsole(std::string_view a_msg) { RE::ConsoleLog::GetSingleton()->Print(a_msg.data()); }
 	inline void PrintConsole(const char* a_msg) { RE::ConsoleLog::GetSingleton()->Print(a_msg); }
+	template <typename... Args>
+	inline void PrintConsole(fmt::format_string<Args...> a_fmt, Args&&... args)
+	{
+		const auto msg = fmt::format(a_fmt, std::forward<Args>(args)...);
+		RE::ConsoleLog::GetSingleton()->Print(msg.data());
+	}
 
 	// Actor
 	bool HasBeneficialPotion(RE::TESObjectREFR* a_container);
