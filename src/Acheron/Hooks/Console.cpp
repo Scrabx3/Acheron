@@ -1,5 +1,7 @@
 #include "Console.h"
 
+#include "Acheron/Defeat.h"
+
 namespace Acheron
 {
 	bool Console::ParseCmd(std::string_view a_cmd, RE::TESObjectREFR* a_targetRef)
@@ -67,13 +69,12 @@ namespace Acheron
 
 	RE::Actor* CommandBase::GetTargetActor(std::string_view a_targetStr, RE::TESObjectREFR* a_targetRef) const
 	{
-		RE::Actor* targetRef = nullptr;
-		if (a_targetRef) {
-			targetRef = a_targetRef->As<RE::Actor>();
-		}
-		if (!targetRef && !a_targetStr.empty()) {
+		if (!a_targetStr.empty()) {
 			const auto tmp = ParseTargetRef(a_targetStr);
 			return tmp ? tmp->As<RE::Actor>() : nullptr;
+		}
+		if (a_targetRef) {
+			return a_targetRef->As<RE::Actor>();
 		}
 		return nullptr;
 	}
@@ -81,14 +82,14 @@ namespace Acheron
 	bool CmdHelp::Run(std::vector<std::string_view>&, RE::TESObjectREFR*) const
 	{
 		PrintConsole(
-			"-------------------------------------------------\n"
-			"\tdefeat (actor): Defeat an actor, causing them to become unable to fight\n"
-			"\trescue (actor, bAndRelease = 1): Rescue (undo defeat) an actor, optionally also releasing them\n"
-			"\tisdefeated (actor): Test if an actor is currently defeated\n"
-			"\tpacify (actor): Pacify an actor, disallowing them to join combat\n"
-			"\trelease (actor): Release (undo pacify) an actor\n"
-			"\tispacified (actor): Test is an actor is currently pacified\n"
-			"-------------------------------------------------\n");
+			"---------------------------------------------------------------\n"
+			"defeat (target: Actor) -> Defeat an actor, causing them to become unable to fight\n"
+			"rescue (bAndRelease: int = 1, target: Actor) -> Rescue (undo defeat) an actor, optionally also releasing them\n"
+			"isdefeated (target: Actor) -> Test if an actor is currently defeated\n"
+			"pacify (target: Actor) -> Pacify an actor, disallowing them to join combat\n"
+			"release (target: Actor) -> Release (undo pacify) an actor\n"
+			"ispacified (target: Actor) -> Test is an actor is currently pacified\n"
+			"---------------------------------------------------------------\n");
 		return true;
 	}
 
@@ -105,19 +106,19 @@ namespace Acheron
 
 	bool CmdRescue::Run(std::vector<std::string_view>& a_args, RE::TESObjectREFR* a_targetRef) const
 	{
-		const auto target = GetTargetActor(a_args.size() > 1 ? a_args[1] : ""sv, a_targetRef);
+		const auto target = GetTargetActor(a_args.size() > 2 ? a_args[2] : ""sv, a_targetRef);
 		if (!target) {
 			PrintConsole("[Acheron] Missing argument \"actor\" at position 1");
 			return false;
 		}
 		bool release;
-		if (a_args.size() > 2) {
-			if (a_args[2] == "0" || a_args[2] == "false") {
+		if (a_args.size() > 1) {
+			if (a_args[1] == "0" || a_args[1] == "false") {
 				release = false;
-			} else if (a_args[2] == "1" || a_args[2] == "true") {
+			} else if (a_args[1] == "1" || a_args[1] == "true") {
 				release = true;
 			} else {
-				PrintConsole("[Acheron] Invalid argument at position 2. Argument should be either \"1\" or \"0\"");
+				PrintConsole("[Acheron] Invalid argument at position 1. Argument should be either \"1\" or \"0\"");
 				return false;
 			}
 		} else {

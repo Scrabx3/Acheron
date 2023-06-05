@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Acheron/Defeat.h"
-
 namespace Acheron
 {
 	struct CommandBase
@@ -47,7 +45,7 @@ namespace Acheron
 	{
 		virtual bool Run(std::vector<std::string_view>& a_args, RE::TESObjectREFR* a_targetRef) const override;
 	};
-	
+
 	struct Console
 	{
 		static bool ParseCmd(std::string_view a_cmd, RE::TESObjectREFR* a_targetRef);
