@@ -62,6 +62,7 @@ namespace Acheron
 					priority = Priority::Default;
 				}
 			}
+			break;
 		default:
 			throw std::exception(fmt::format("Invalid version: {}", version).c_str());
 		}
