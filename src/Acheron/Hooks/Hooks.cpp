@@ -161,8 +161,9 @@ namespace Acheron
 
 	void Hooks::WeaponHit(RE::Actor* a_target, RE::HitData& a_hitData)
 	{
-		const auto aggressor = a_hitData.aggressor.get().get();
-		if (a_target && aggressor && aggressor != a_target && !a_target->IsCommandedActor() && IsNPC(a_target)) {
+		const auto aggressorPtr = a_hitData.aggressor.get();
+		if (a_target && aggressorPtr && aggressorPtr.get() != a_target && !a_target->IsCommandedActor() && IsNPC(a_target)) {
+			const auto aggressor = aggressorPtr.get();
 			if (Defeat::IsDamageImmune(a_target))
 				return;
 			if (Validation::CanProcessDamage() && Validation::ValidatePair(a_target, aggressor)) {
@@ -244,15 +245,18 @@ namespace Acheron
 			if (Validation::CanProcessDamage()) {
 				const auto caster = effect.caster.get();
 				if (caster && caster.get() != target && Validation::ValidatePair(target, caster.get())) {
+					static std::mutex cache_m{};
 					static std::vector<RE::FormID> cache{};
+					cache_m.lock();
 					if (std::find(cache.begin(), cache.end(), target->formID) == cache.end()) {
 						const auto id = target->formID;
 						cache.push_back(id);
+						cache_m.unlock();
 						std::thread([id]() {
 							std::this_thread::sleep_for(800ms);
-							SKSE::GetTaskInterface()->AddTask([id]() {
-								cache.erase(std::find(cache.begin(), cache.end(), id));
-							});
+							cache_m.lock();
+							std::erase(cache, id);
+							cache_m.unlock();
 						}).detach();
 
 						const float health = target->GetActorValue(RE::ActorValue::kHealth);
@@ -294,7 +298,7 @@ namespace Acheron
 
 			for (auto& e : spell->effects) {
 				auto base = e ? e->baseEffect : nullptr;
-				if (base && base->data.flags.underlying() & 4) {  // detremental
+				if (base && base->data.flags.all(RE::EffectSetting::EffectSettingData::Flag::kDetrimental)) {
 					return false;
 				}
 			}
@@ -560,7 +564,7 @@ namespace Acheron
 			a_victim->RemoveItem(item, 1, RE::ITEM_REMOVE_REASON::kDropping, nullptr, nullptr);
 		} else if (!a_victim->IsPlayerRef()) {
 			// store armor for re-equipping on combat end, since NPC normally dont do it on their own..
-			// IDEA: would use the default equip func if I knew where its hidin
+			// IDEA: use vanilla NPC gear re-evaluation
 			auto& v = EventHandler::GetSingleton()->worn_cache;
 			if (auto where = v.find(a_victim->GetFormID()); where != v.end())
 				where->second.push_back(item);

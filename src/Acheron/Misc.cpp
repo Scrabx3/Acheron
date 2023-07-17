@@ -42,7 +42,7 @@ namespace Acheron
 		float tempAV = a_actor->GetActorValueModifier(RE::ACTOR_VALUE_MODIFIER::kTemporary, a_av);
 		float totalAV = a_actor->GetPermanentActorValue(a_av) + tempAV;
 		float currentAV = a_actor->GetActorValue(a_av);
-		return currentAV / totalAV;
+		return totalAV > 0 ? currentAV / totalAV : currentAV;
 	}
 
 	std::vector<RE::TESObjectARMO*> GetWornArmor(RE::Actor* a_actor, uint32_t a_ignoredmasks)
