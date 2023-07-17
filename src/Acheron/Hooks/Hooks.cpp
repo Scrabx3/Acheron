@@ -209,7 +209,7 @@ namespace Acheron
 						RemoveDamagingSpells(a_target);
 						return;
 					}
-				} else if ((a_hitData.flags.underlying() & ((1 << 0) + (1 << 1))) == 0) {  // blocked, blocked with weapon
+				} else if (a_hitData.flags.none(RE::HitData::Flag::kBlocked, RE::HitData::Flag::kBlockWithWeapon)) {
 					ValidateStrip(a_target);
 				}
 			}
@@ -425,7 +425,7 @@ namespace Acheron
 
 			const auto damaging = [](const RE::EffectSetting::EffectSettingData& data) {
 				if (data.primaryAV == RE::ActorValue::kHealth || data.secondaryAV == RE::ActorValue::kHealth)
-					return (data.flags.underlying() & 6) == 4;
+					return (data.flags.underlying() & 6) == 4;	// Detrimental and not Recover
 				return false;
 			};
 
