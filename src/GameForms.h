@@ -5,7 +5,7 @@ namespace Acheron
 	struct GameForms
 	{
 #define LOOKUPFORM(form, formid)                                                                                           \
-	form = RE::TESDataHandler::GetSingleton()->LookupForm<std::remove_pointer<decltype(form)>::type>(formid, "Acheron.esl"); \
+	form = RE::TESDataHandler::GetSingleton()->LookupForm<std::remove_pointer<decltype(form)>::type>(formid, "Acheron.esm"); \
 	if (!form)                                                                                                               \
 		return false;
 
