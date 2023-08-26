@@ -2,6 +2,15 @@
 
 namespace Acheron
 {
+	enum VTarget
+	{
+		Victim = 0,
+		Assailant = 1,
+		Either = 2,
+
+		Total
+	};
+
 	class Validation
 	{
 	public:
@@ -24,12 +33,15 @@ namespace Acheron
 	private:
 		static bool ValidateActor(RE::Actor* a_actor);
 
-		static inline std::vector<RE::FormID> exLocation{};
-		static inline std::vector<RE::FormID> exTeleport{};
-		static inline std::vector<RE::FormID> exNPC{};
-		static inline std::vector<RE::FormID> exReference{};
-		static inline std::vector<RE::FormID> exRace{};
-		static inline std::vector<RE::TESFaction*> exFaction{};
+		static bool CheckVictimID(RE::FormID a_formid);												 // Conditional exclusion of some unique actor ids
+		static bool CheckExclusion(VTarget a_validation, RE::Actor* a_actor);	 // Check actor for exclusion in arrays
+
+		static inline std::vector<RE::FormID> exclLocAll{};									// Always disabled locations
+		static inline std::vector<RE::FormID> exclLocTp{};									// Teleport only disabled locations
+		static inline std::vector<RE::FormID> exclNPC[VTarget::Total];			// Excluded Actor Bases
+		static inline std::vector<RE::FormID> exclRef[VTarget::Total];			// Excluded object refs
+		static inline std::vector<RE::FormID> exclRace[VTarget::Total];			// Excluded races
+		static inline std::vector<RE::FormID> exclFaction[VTarget::Total];	// Excluded factions
 	};
 
 }	 // namespace Acheron
