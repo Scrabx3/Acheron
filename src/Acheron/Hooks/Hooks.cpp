@@ -280,6 +280,8 @@ namespace Acheron
 						} else if (effect.spell->GetSpellType() != RE::MagicSystem::SpellType::kEnchantment) {
 							ValidateStrip(target);
 						}
+					} else {
+						cache_m.unlock();
 					}
 				}
 			}
