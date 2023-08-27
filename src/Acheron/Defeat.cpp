@@ -45,18 +45,8 @@ namespace Acheron
 			ref->As<RE::BGSKeywordForm>()->AddKeyword(GameForms::Defeated);
 		}
 
-		Victim data{};
-		data.registered_at = RE::Calendar::GetSingleton()->GetDaysPassed();
+		VictimData data{ RE::Calendar::GetSingleton()->GetDaysPassed() };
 		if (a_victim->IsPlayerRef()) {
-			// const auto SetTeamateFlag = [](const std::vector<RE::Actor*>& a_followers, bool toggle) {
-			// 	for (auto& e : a_followers) {
-			// 		toggle ? e->boolBits.set(RE::Actor::BOOL_BITS::kPlayerTeammate) : e->boolBits.reset(RE::Actor::BOOL_BITS::kPlayerTeammate);
-			// 	}
-			// };
-			// Temporarily remove Teammate flags before messing with player aggression
-			// const auto followers = GetFollowers();
-			// SetTeamateFlag(followers, false);
-
 			const auto cmap = RE::ControlMap::GetSingleton();
 			cmap->ToggleControls(RE::UserEvents::USER_EVENT_FLAG::kActivate, false);
 			cmap->ToggleControls(RE::UserEvents::USER_EVENT_FLAG::kJumping, false);
@@ -66,7 +56,6 @@ namespace Acheron
 			RE::PlayerCamera::GetSingleton()->ForceThirdPerson();
 
 			PacifyUnsafe(a_victim);
-			// SetTeamateFlag(followers, true);
 		} else {
 			if (a_victim->IsPlayerTeammate()) {
 				a_victim->SetActorValue(RE::ActorValue::kWaitingForPlayer, 1);
@@ -77,7 +66,7 @@ namespace Acheron
 				logger::error("Failed to dispatch static call [ActorUtil::AddPackageOverride]. PapyrusUtil missing?");
 			}
 		}
-		Victims[a_victim->GetFormID()] = data;
+		Victims.emplace(a_victim->GetFormID(), data);
 
 		a_victim->boolFlags.set(RE::Actor::BOOL_FLAGS::kNoBleedoutRecovery);
 		if (a_victim->Is3DLoaded()) {
@@ -253,7 +242,7 @@ namespace Acheron
 		for (auto&& [formid, data] : Victims) {
 			if (a_loadedonly) {
 				auto victim = RE::TESForm::LookupByID<RE::Actor>(formid);
-				if (victim && victim->Is3DLoaded())
+				if (victim && !victim->Is3DLoaded())
 					continue;
 			}
 			data.allow_recovery = false;
@@ -298,10 +287,7 @@ namespace Acheron
 						ref->As<RE::BGSKeywordForm>()->AddKeyword(GameForms::Defeated);
 					}
 
-					Victim data{};
-					data.registered_at = time;
-
-					Victims[formID] = data;
+					Victims.emplace(formID, VictimData{ time });
 				}
 			}
 			break;

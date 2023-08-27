@@ -12,9 +12,13 @@ namespace Acheron
 			NPC
 		};
 
-		struct Victim
+		struct VictimData
 		{
-			float registered_at{ 0 };			// GameDaysPassed at construction
+			VictimData(float a_registertime) :
+				registered_at(a_registertime) {}
+			~VictimData() = default;
+
+			float registered_at;					// GameDaysPassed at construction
 			bool allow_recovery{ true };	// if this actor may passively recover
 		};
 
@@ -39,7 +43,7 @@ namespace Acheron
 		static void Revert(SKSE::SerializationInterface* a_intfc);
 
 	public:
-		static inline std::map<RE::FormID, Victim> Victims;
+		static inline std::unordered_map<RE::FormID, VictimData> Victims;
 		static inline std::set<RE::FormID> Pacified;
 	};
 
