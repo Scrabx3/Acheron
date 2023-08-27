@@ -39,8 +39,11 @@ namespace Acheron
 		REL::Relocation<std::uintptr_t> l3d{ RE::Character::VTABLE[0] };
 		_Load3D = l3d.write_vfunc(0x6A, Load3D);
 		// ==================================================
+		REL::Relocation<std::uintptr_t> upch{ RE::Character::VTABLE[0] };
+		_UpdateCharacter = upch.write_vfunc(0x0AD, UpdateCharacter);
+		// ==================================================
 		REL::Relocation<std::uintptr_t> upc{ RE::Character::VTABLE[0] };
-		_UpdateCombat = upc.write_vfunc(0x11B, UpdateCombat);
+		_UpdateCombat = upc.write_vfunc(0x0E4, UpdateCombat);
 
 		logger::info("Hooks installed");
 	}
@@ -110,16 +113,21 @@ namespace Acheron
 		return ret;
 	}
 
+	void Hooks::UpdateCharacter(RE::Character* a_this, float a_delta)
+	{
+		_UpdateCharacter(a_this, a_delta);
+
+		if (Defeat::IsDefeated(a_this) || a_this->IsCommandedActor() || !IsNPC(a_this) || !Validation::CanProcessDamage())
+			return;
+		CalcDamageOverTime(a_this);
+	}
+
 	void Hooks::UpdateCombat(RE::Character* a_this)
 	{
-		_UpdateCombat(a_this);
-
-		if (Defeat::IsDamageImmune(a_this)) {
-			if (a_this->IsInCombat())
-				a_this->StopCombat();
-		} else if (IsNPC(a_this) && !a_this->IsCommandedActor()) {
-			if (Validation::CanProcessDamage())
-				CalcDamageOverTime(a_this);
+		if (!Defeat::IsPacified(a_this)) {
+			_UpdateCombat(a_this);
+		} else if (a_this->IsInCombat()) {
+			a_this->StopCombat();
 		}
 	}
 
