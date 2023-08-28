@@ -2,6 +2,15 @@
 
 #include "Acheron/Defeat.h"
 
+inline std::string ActorVecAsString(std::vector<RE::Actor*> a_actors)
+{
+	std::string ret{ "[\n" };
+	for (auto&& actor : a_actors) {
+		ret += fmt::format("\t{:X}\n", actor->GetFormID());
+	}
+	return ret + "]";
+}
+
 namespace Acheron
 {
 	bool Console::ParseCmd(std::string_view a_cmd, RE::TESObjectREFR* a_targetRef)
@@ -82,14 +91,16 @@ namespace Acheron
 	bool CmdHelp::Run(std::vector<std::string_view>&, RE::TESObjectREFR*) const
 	{
 		PrintConsole(
-			"---------------------------------------------------------------\n"
-			"defeat (target: Actor) -> Defeat an actor, causing them to become unable to fight\n"
-			"rescue (bAndRelease: int = 1, target: Actor) -> Rescue (undo defeat) an actor, optionally also releasing them\n"
-			"isdefeated (target: Actor) -> Test if an actor is currently defeated\n"
-			"pacify (target: Actor) -> Pacify an actor, disallowing them to join combat\n"
-			"release (target: Actor) -> Release (undo pacify) an actor\n"
-			"ispacified (target: Actor) -> Test is an actor is currently pacified\n"
-			"---------------------------------------------------------------\n");
+				"---------------------------------------------------------------\n"
+				"defeat (target: Actor) -> Defeat an actor, causing them to become unable to fight\n"
+				"rescue (bAndRelease: int = 1, target: Actor) -> Rescue (undo defeat) an actor, optionally also releasing them\n"
+				"isdefeated (target: Actor) -> Test if an actor is currently defeated\n"
+				"getpacified (target: Actor) -> List every actor that is currently defeated\n"
+				"pacify (target: Actor) -> Pacify an actor, disallowing them to join combat\n"
+				"release (target: Actor) -> Release (undo pacify) an actor\n"
+				"ispacified (target: Actor) -> Test is an actor is currently pacified\n"
+				"getpacified (target: Actor) -> List every actor that is currently pacified\n"
+				"---------------------------------------------------------------\n");
 		return true;
 	}
 
@@ -135,7 +146,14 @@ namespace Acheron
 			PrintConsole("[Acheron] Missing paramaeter \"actor\" at position 1");
 			return false;
 		}
-		Defeat::IsDefeated(target);
+		PrintConsole("[Acheron] Defeated: {}", Defeat::IsDefeated(target));
+		return true;
+	}
+
+	bool CmdGetDefeated::Run(std::vector<std::string_view>&, RE::TESObjectREFR*) const
+	{
+		const auto defeated = Defeat::GetAllDefeated(true);
+		PrintConsole("[Acheron] Defeated Actors: {}", ActorVecAsString(defeated));
 		return true;
 	}
 
@@ -168,7 +186,14 @@ namespace Acheron
 			PrintConsole("[Acheron] Missing paramaeter \"actor\" at position 1");
 			return false;
 		}
-		Defeat::IsPacified(target);
+		PrintConsole("[Acheron] Pacified: {}", Defeat::IsPacified(target));
+		return true;
+	}
+
+	bool CmdGetPacified::Run(std::vector<std::string_view>&, RE::TESObjectREFR*) const
+	{
+		const auto pacified = Defeat::GetAllPacified(true);
+		PrintConsole("[Acheron] Pacified Actors: {}", ActorVecAsString(pacified));
 		return true;
 	}
 

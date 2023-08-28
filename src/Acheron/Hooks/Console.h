@@ -30,6 +30,11 @@ namespace Acheron
 	{
 		virtual bool Run(std::vector<std::string_view>& a_args, RE::TESObjectREFR* a_targetRef) const override;
 	};
+	
+	struct CmdGetDefeated : public CommandBase
+	{
+		virtual bool Run(std::vector<std::string_view>& a_args, RE::TESObjectREFR* a_targetRef) const override;
+	};
 
 	struct CmdPacify : public CommandBase
 	{
@@ -46,6 +51,11 @@ namespace Acheron
 		virtual bool Run(std::vector<std::string_view>& a_args, RE::TESObjectREFR* a_targetRef) const override;
 	};
 
+	struct CmdGetPacified : public CommandBase
+	{
+		virtual bool Run(std::vector<std::string_view>& a_args, RE::TESObjectREFR* a_targetRef) const override;
+	};
+
 	struct Console
 	{
 		static bool ParseCmd(std::string_view a_cmd, RE::TESObjectREFR* a_targetRef);
@@ -56,9 +66,11 @@ namespace Acheron
 			{ "defeat"s, std::make_shared<CmdDefeat>() },
 			{ "rescue"s, std::make_shared<CmdRescue>() },
 			{ "isdefeated"s, std::make_shared<CmdIsDefeated>() },
+			{ "getdefeated"s, std::make_shared<CmdGetDefeated>() },
 			{ "pacify"s, std::make_shared<CmdPacify>() },
 			{ "release"s, std::make_shared<CmdRelease>() },
 			{ "ispacified"s, std::make_shared<CmdIsPacified>() },
+			{ "getpacified"s, std::make_shared<CmdGetPacified>() },
 		};
 	};
 }  // namespace Acheron::Console
