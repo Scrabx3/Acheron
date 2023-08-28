@@ -108,11 +108,10 @@ namespace Acheron::Interface
 				std::vector<RE::GFxValue> args;
 				args.reserve(_options.size() + 4);
 				static const std::array defaults{
-					// TODO: put .dds files into a .swf with frame counter
-					Option{ DEFAULT_OPTIONS[0], "", "$Achr_Rescue", "Rescue.dds" },
-					Option{ DEFAULT_OPTIONS[1], "", "$Achr_Plunder", "Plunder.dds" },
-					Option{ DEFAULT_OPTIONS[2], "{\"target\":{\"is\":[\"nonessential\"]}}", "$Achr_Execute", "Execute.dds" },
-					Option{ DEFAULT_OPTIONS[3], vampire_cond, "$Achr_Vampire", "Vampire.dds" }
+					Option{ DEFAULT_OPTIONS[0], "", "$Achr_Rescue", "AcheronIcons.swf{Health}" },
+					Option{ DEFAULT_OPTIONS[1], "", "$Achr_Plunder", "AcheronIcons.swf{Bag}" },
+					Option{ DEFAULT_OPTIONS[2], "{\"target\":{\"is\":[\"nonessential\"]}}", "$Achr_Execute", "AcheronIcons.swf{Knife}" },
+					Option{ DEFAULT_OPTIONS[3], vampire_cond, "$Achr_Vampire", "AcheronIcons.swf{Fangs}" }
 				};
 				for (size_t i = 0; i < defaults.size() + _options.size(); i++) {
 					// IDEA: Hidden flag?
