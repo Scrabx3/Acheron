@@ -12,7 +12,7 @@ namespace Acheron
 {
 	void Hooks::Install()
 	{
-		SKSE::AllocTrampoline(1 << 7);
+		SKSE::AllocTrampoline(static_cast<size_t>(1) << 7);
 		auto& trampoline = SKSE::GetTrampoline();
 		// ==================================================
 		REL::Relocation<std::uintptr_t> wh{ RELID(37673, 38627), OFFSET(0x3C0, 0x4a8) };
@@ -58,32 +58,46 @@ namespace Acheron
 		return _CompileAndRun(a_script, a_compiler, a_name, a_targetRef);
 	}
 
-	void Hooks::UpdatePlayer(RE::PlayerCharacter* player, float delta)
+	void Hooks::UpdatePlayer(RE::PlayerCharacter* a_player, float a_delta)
 	{
-		_PlUpdate(player, delta);
+		_PlUpdate(a_player, a_delta);
 
-		auto w = Defeat::Victims.find(player->GetFormID());
-		if (w == Defeat::Victims.end()) {
+		// this is somewhat expensive, so only do it when the player goes out of combat
+		static bool __combat = a_player->playerFlags.isInCombat;
+		if (__combat != a_player->playerFlags.isInCombat) {
+			__combat = a_player->playerFlags.isInCombat;
+			if (!__combat && Settings::bKdFollowerCombatEnd) {
+				const auto defeated = Defeat::GetAllDefeated(false);
+				for (auto&& actor : defeated) {
+					if (!actor->IsPlayerTeammate())
+						continue;
+					Defeat::RescueActor(actor, true);
+				}
+			}
+		} 
+
+		const auto data = Defeat::GetVictimData(a_player->GetFormID());
+		if (!data) {
 			if (Validation::CanProcessDamage())
-				CalcDamageOverTime(player);
-
+				CalcDamageOverTime(a_player);
+			return;
+		} else if (!data->allow_recovery) {
 			return;
 		}
-		if (!w->second.allow_recovery)
-			return;
 
-		const auto per = GetAVPercent(player, RE::ActorValue::kHealth);
-		if (Settings::fKdHealthThresh > 0.0f && per >= Settings::fKdHealthThresh) {
-			Defeat::RescueDelayed(player, true);
-			return;
+		if (Settings::fKdHealthThresh) {
+			if (GetAVPercent(a_player, RE::ActorValue::kHealth) >= Settings::fKdHealthThresh) {
+				Defeat::RescueActor(a_player, true);
+				return;
+			}
 		}
 
 		if (Settings::iKdFallbackTimer) {
 			const auto calendar = RE::Calendar::GetSingleton();
-			auto days_passed = calendar->GetDaysPassed() - w->second.registered_at;
+			auto days_passed = calendar->GetDaysPassed() - data->registered_at;
 			auto seconds_passed = days_passed * 24 * 60 * 60;
 			if (seconds_passed >= Settings::iKdFallbackTimer * calendar->GetTimescale()) {
-				Defeat::RescueDelayed(player, true);
+				Defeat::RescueDelayed(a_player, true);
 				return;
 			}
 		}
@@ -93,20 +107,20 @@ namespace Acheron
 	{
 		const auto ret = _Load3D(a_this, a_arg1);
 
-		const auto getref = [&]() {
-			auto ref = a_this.GetObjectReference();
-			if (!ref)
-				logger::warn("Cannot add keywords to {:X}, form has no associated reference", a_this.formID);
-			return ref;
-		};
-
-		if (Defeat::IsDefeated(&a_this)) {
+		if (const auto data = Defeat::GetVictimData(a_this.GetFormID())) {
+			if (data->mark_for_recovery && data->allow_recovery && Settings::bKdNPCRescueReload) {
+				// isLoading is true when loading from a prev location / is false when loading save
+				if (RE::PlayerCharacter::GetSingleton()->playerFlags.isLoading) {
+					Defeat::RescueActor(&a_this, true);
+					return ret;
+				}
+			}
 			a_this.NotifyAnimationGraph("BleedoutStart");
-			if (auto ref = getref(); ref) {
+			if (auto ref = a_this.GetObjectReference()) {
 				ref->As<RE::BGSKeywordForm>()->AddKeywords({ GameForms::Defeated, GameForms::Pacified });
 			}
 		} else if (Defeat::IsPacified(&a_this)) {
-			if (auto ref = getref(); ref) {
+			if (auto ref = a_this.GetObjectReference()) {
 				ref->As<RE::BGSKeywordForm>()->AddKeyword(GameForms::Pacified);
 			}
 		}
@@ -117,8 +131,11 @@ namespace Acheron
 	{
 		_UpdateCharacter(a_this, a_delta);
 
-		if (Defeat::IsDefeated(a_this) || a_this->IsCommandedActor() || !IsNPC(a_this) || !Validation::CanProcessDamage())
+		if (a_this->IsCommandedActor() || !IsNPC(a_this) || !Validation::CanProcessDamage())
 			return;
+		if (Defeat::IsDefeated(a_this))
+			return;
+
 		CalcDamageOverTime(a_this);
 	}
 
