@@ -66,7 +66,7 @@ namespace Acheron
 		static bool __combat = a_player->playerFlags.isInCombat;
 		if (__combat != a_player->playerFlags.isInCombat) {
 			__combat = a_player->playerFlags.isInCombat;
-			if (!__combat && Settings::bKdFollowerCombatEnd) {
+			if (!__combat && Settings::bKdFollowerCombatEnd && !Defeat::IsDamageImmune(a_player)) {
 				const auto defeated = Defeat::GetAllDefeated(false);
 				for (auto&& actor : defeated) {
 					if (!actor->IsPlayerTeammate())
