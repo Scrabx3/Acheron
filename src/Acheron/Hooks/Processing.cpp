@@ -8,6 +8,7 @@ namespace Acheron
 	bool Processing::RegisterDefeat(RE::Actor* a_victim, RE::Actor* a_aggressor)
 	{
 		logger::info("Aggressor {} -> Register Defeat for Victim {}", a_aggressor->GetFormID(), a_victim->GetFormID());
+		assert(a_victim != a_aggressor);
 		if (a_aggressor->IsCommandedActor()) {
 			auto tmp = a_aggressor->GetCommandingActor().get();
 			if (tmp) {
@@ -83,27 +84,28 @@ namespace Acheron
 			logger::warn("Aggressor = {} has no Combat Group, Abandon", a_aggressor->GetFormID());
 			return DefeatResult::Cancel;
 		}
-		const auto validtarget = [](const RE::ActorPtr t) -> bool {
-			return t && !t->IsCommandedActor() && t->Is3DLoaded() && !t->IsDead() && !Defeat::IsDamageImmune(t.get());
+		const auto validtarget = [](const RE::ActorPtr ptr) -> bool {
+			return ptr && !ptr->IsCommandedActor() && ptr->Is3DLoaded() && !ptr->IsDead() && !Defeat::IsDamageImmune(ptr.get());
 		};
 
-		std::set<RE::FormID> targets;
+		size_t targetcount = 0;
 		for (auto& e : agrzone->targets) {
 			const auto& target = e.targetHandle.get();
 			if (!target)
 				continue;
-			else if (validtarget(target))
-				targets.insert(target->GetFormID());
+			if (validtarget(target))
+				targetcount++;
 
-			if (const auto& combatgroup = target->GetCombatGroup(); combatgroup) {
-				for (const auto& member : combatgroup->members) {
-					if (const auto t = member.memberHandle.get(); validtarget(t))
-						targets.insert(t->GetFormID());
-				}
+			const auto& targetgroup = target->GetCombatGroup();
+			if (!targetgroup)
+				continue;
+			for (const auto& member : targetgroup->members) {
+				if (const auto t = member.memberHandle.get(); validtarget(t))
+					targetcount++;
 			}
 		}
-		logger::info("Aggressor {} has {} targets", a_aggressor->GetFormID(), targets.size());
-		switch (targets.size()) {
+		logger::info("Aggressor {} has {} targets", a_aggressor->GetFormID(), targetcount);
+		switch (targetcount) {
 		case 0:
 			return DefeatResult::Cancel;
 		case 1:
