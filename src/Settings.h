@@ -2,13 +2,6 @@
 
 struct Settings
 {
-	enum FollowerRecovery : uint8_t
-	{
-		Never = 0,
-		Health = 1,
-		Unload = 2
-	};
-
 	static void Initialize();
 	static void Save();
 
@@ -19,9 +12,9 @@ struct Settings
 	static inline bool bKillMove{ true };
 
 	// Hunter Pride
-	static inline int iHunterPrideKey{ -1 };		  // hotkey to enable/disable hunter pride
-	static inline int iHunterPrideKeyMod{ -1 };		  // modifier key for hunter pride activaition
-	static inline bool bHunterPrideFollower{ true };  // follower may onle defeat while hunter pride is active
+	static inline int iHunterPrideKey{ -1 };					// hotkey to enable/disable hunter pride
+	static inline int iHunterPrideKeyMod{ -1 };				// modifier key for hunter pride activaition
+	static inline bool bHunterPrideFollower{ true };	// follower may onle defeat while hunter pride is active
 
 	// Notifications
 	static inline bool bNotifyDefeat{ false };						// notify when a NPC gets knocked down
@@ -35,9 +28,11 @@ struct Settings
 	static inline bool bNPCDefeat{ true };						// if NPC may be defeated
 
 	// Passive Recovery
-	static inline float fKdHealthThresh{ 0.20f };	 // Player: Minimum health required to recover from defeat status
-	static inline int iKdFallbackTimer{ 90 };			 // Player: maximum time the player can stay defeated mid combat, independent of health
-	static inline bool bKdFollowerUnload{ true };	 // Follower: Recover on unload
+	static inline float fKdHealthThresh{ 0.20f };		 // Player: Minimum health required to recover from defeat status
+	static inline int iKdFallbackTimer{ 90 };				 // Player: maximum time the player can stay defeated mid combat, independent of health
+	static inline int bKdFollowerUnload{ true };		 // Follower: Recover when unloading
+	static inline int bKdFollowerCombatEnd{ true };	 // Follower: Recover when combat ends
+	static inline bool bKdNPCRescueReload{ true };	 // NPC: if NPC are rescued when their 3d is being reloaded
 
 	// Lethal
 	static inline bool bLethalEssential{ true };
@@ -52,13 +47,13 @@ struct Settings
 
 	// Exposed
 	static inline int iStrips{ 1'066'390'941 };	 // Slots to recognize
-	static inline int iExposed{ 2 };			 // Min amount of slots equipped to NOT be exposed
+	static inline int iExposed{ 2 };						 // Min amount of slots equipped to NOT be exposed
 	static inline float fExposedChance{ 0.0f };	 // Chance for an exposed strike to defeat
 
 	// Stripping
 	static inline float fStripChance{ 0.0f };
 	static inline float fStripDestroy{ 5.0f };	// Chance for stripped item to be destroyed
-	static inline bool bStripDrop{ false };		// should non destroyed items be dropped
+	static inline bool bStripDrop{ false };			// should non destroyed items be dropped
 
 	// Table for dynamic access
 	struct StringCmp
@@ -77,7 +72,10 @@ struct Settings
 		INT = 3
 	};
 
-#define ENTRY(var) { #var##s, &var }
+#define ENTRY(var) \
+	{                \
+		#var##s, &var  \
+	}
 	static inline std::map<std::string, std::variant<float*, std::string*, bool*, int*>, StringCmp> table{
 		ENTRY(ProcessingEnabled),
 		ENTRY(ConsequenceEnabled),
