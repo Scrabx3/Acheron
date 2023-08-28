@@ -17,26 +17,48 @@ namespace Acheron
 		return EventResult::kContinue;
 	}
 
+	EventResult EventHandler::ProcessEvent(const RE::TESActorLocationChangeEvent* a_event, RE::BSTEventSource<RE::TESActorLocationChangeEvent>*)
+	{
+		if (!a_event || !a_event->actor || !a_event->actor->IsPlayerRef())
+			return EventResult::kContinue;
+		// Dont process playing loading game
+		if (!RE::PlayerCharacter::GetSingleton()->playerFlags.isLoading)
+			if (RE::UI::GetSingleton()->IsMenuOpen(RE::InterfaceStrings::GetSingleton()->loadingMenu))
+				return EventResult::kContinue;
+		// Dont process loading child/parent locs
+		if (a_event->newLoc && a_event->oldLoc)
+			if (a_event->newLoc->IsChild(a_event->oldLoc) || a_event->newLoc->IsParent(a_event->oldLoc))
+				return EventResult::kContinue;
+
+		std::vector<RE::Actor*> rescuethis{};
+		Defeat::ForEachVictim([&](RE::FormID a_formid, Defeat::VictimData& a_data) {
+			RE::Actor* victim = RE::TESForm::LookupByID<RE::Actor>(a_formid);
+			if (!victim || !victim->Is3DLoaded()) {
+				a_data.mark_for_recovery = true;
+			} else if (Settings::bKdFollowerUnload && victim->IsPlayerTeammate()) {
+				if (!victim->Is3DLoaded() || victim->GetPosition().GetDistance(a_event->actor->GetPosition()) > 4096)
+					rescuethis.push_back(victim);
+			}
+			return Defeat::VictimVistor::Continue;
+		});
+		for (auto& rescue : rescuethis) {
+			Defeat::RescueActor(rescue, true);
+		}
+		return EventResult::kContinue;
+	}
+
 	EventResult EventHandler::ProcessEvent(const RE::TESCombatEvent* a_event, RE::BSTEventSource<RE::TESCombatEvent>*)
 	{
 		if (!a_event || a_event->newState != RE::ACTOR_COMBAT_STATE::kNone)
 			return EventResult::kContinue;
 
 		const auto actor = a_event->actor->As<RE::Actor>();
-		if (!actor || !actor->Is3DLoaded() || actor->IsDead())
-			return EventResult::kContinue;
-
-		if (!Defeat::IsDefeated(actor)) {
+		if (actor && actor->Is3DLoaded() && !actor->IsDead() && !Defeat::IsDefeated(actor)) {
 			auto w = worn_cache.find(actor->GetFormID());
 			if (w == worn_cache.end())
 				return EventResult::kContinue;
 
-			auto& p = actor->currentProcess;
-			if (p && p->InHighProcess()) {
-				auto high = p->high;
-				if (high)
-					high->reEquipArmorTimer = 1.0f;
-			}
+			// TODO: Look at Actor.cpp AddWornOutfit() and check what the 2nd arg does
 		}
 		worn_cache.erase(actor->GetFormID());
 		return EventResult::kContinue;
@@ -44,31 +66,17 @@ namespace Acheron
 
 	EventResult EventHandler::ProcessEvent(const RE::TESObjectLoadedEvent* a_event, RE::BSTEventSource<RE::TESObjectLoadedEvent>*)
 	{
-		if (!a_event->loaded) {
+		if (!a_event->loaded)
 			worn_cache.erase(a_event->formID);
 
-      auto w = Defeat::Victims.find(a_event->formID);
-			if (w != Defeat::Victims.end() && w->second.allow_recovery) {
-				auto victim = RE::TESForm::LookupByID<RE::Actor>(a_event->formID);
-        if (victim && Settings::bKdFollowerUnload && victim->IsPlayerTeammate()) {
-					SKSE::GetTaskInterface()->AddTask([victim]() {
-						Defeat::RescueActor(victim, true);
-					});
-				}
-			}
-		}
 		return EventResult::kContinue;
 	}
 
 	EventResult EventHandler::ProcessEvent(const RE::TESFormDeleteEvent* a_event, RE::BSTEventSource<RE::TESFormDeleteEvent>*)
   {
-		if (!a_event)
-			return EventResult::kContinue;
+		if (a_event)
+			Defeat::Delete(a_event->formID);
 
-		if (Defeat::Pacified.erase(a_event->formID) > 0) {
-			Defeat::Victims.erase(a_event->formID);
-			logger::info("Form {:X} has been deleted and thus removed from Pacified & Victim lists", a_event->formID);
-		}
 		return EventResult::kContinue;
 	}
 

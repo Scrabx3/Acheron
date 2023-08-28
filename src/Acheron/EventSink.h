@@ -6,6 +6,7 @@ namespace Acheron
 
 	class EventHandler :
 			public Singleton<EventHandler>,
+			public RE::BSTEventSink<RE::TESActorLocationChangeEvent>,
 			public RE::BSTEventSink<RE::BSAnimationGraphEvent>,
 			public RE::BSTEventSink<RE::TESObjectLoadedEvent>,
 			public RE::BSTEventSink<RE::TESFormDeleteEvent>,
@@ -20,6 +21,7 @@ namespace Acheron
 			logger::info("Registering Event Sinks");
 
 			const auto script = RE::ScriptEventSourceHolder::GetSingleton();
+			script->AddEventSink<RE::TESActorLocationChangeEvent>(this);
 			script->AddEventSink<RE::TESObjectLoadedEvent>(this);
 			script->AddEventSink<RE::TESFormDeleteEvent>(this);
 			script->AddEventSink<RE::TESCombatEvent>(this);
@@ -31,6 +33,7 @@ namespace Acheron
 		}
 
 	public:
+		EventResult ProcessEvent(const RE::TESActorLocationChangeEvent* a_event, RE::BSTEventSource<RE::TESActorLocationChangeEvent>*) override;
 		EventResult ProcessEvent(const RE::BSAnimationGraphEvent* a_event, RE::BSTEventSource<RE::BSAnimationGraphEvent>*) override;
 		EventResult ProcessEvent(const RE::TESObjectLoadedEvent* a_event, RE::BSTEventSource<RE::TESObjectLoadedEvent>*) override;
 		EventResult ProcessEvent(const RE::TESFormDeleteEvent* a_event, RE::BSTEventSource<RE::TESFormDeleteEvent>*) override;
