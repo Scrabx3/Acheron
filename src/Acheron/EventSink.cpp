@@ -35,7 +35,7 @@ namespace Acheron
 			RE::Actor* victim = RE::TESForm::LookupByID<RE::Actor>(a_formid);
 			if (!victim || !victim->Is3DLoaded()) {
 				a_data.mark_for_recovery = true;
-			} else if (Settings::bKdFollowerUnload && victim->IsPlayerTeammate()) {
+			} else if (Settings::iFollowerRescue == 2 && victim->IsPlayerTeammate()) {
 				if (!victim->Is3DLoaded() || victim->GetPosition().GetDistance(a_event->actor->GetPosition()) > 4096)
 					rescuethis.push_back(victim);
 			}

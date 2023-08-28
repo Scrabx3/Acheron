@@ -66,7 +66,7 @@ namespace Acheron
 		static bool __combat = a_player->playerFlags.isInCombat;
 		if (__combat != a_player->playerFlags.isInCombat) {
 			__combat = a_player->playerFlags.isInCombat;
-			if (!__combat && Settings::bKdFollowerCombatEnd && !Defeat::IsDamageImmune(a_player)) {
+			if (!__combat && Settings::iFollowerRescue == 1 && !Defeat::IsDamageImmune(a_player)) {
 				const auto defeated = Defeat::GetAllDefeated(false);
 				for (auto&& actor : defeated) {
 					if (!actor->IsPlayerTeammate())
@@ -108,7 +108,7 @@ namespace Acheron
 		const auto ret = _Load3D(a_this, a_arg1);
 
 		if (const auto data = Defeat::GetVictimData(a_this.GetFormID())) {
-			if (data->mark_for_recovery && data->allow_recovery && Settings::bKdNPCRescueReload) {
+			if (data->mark_for_recovery && data->allow_recovery && Settings::bNPCRescueReload) {
 				// isLoading is true when loading from a prev location / is false when loading save
 				if (RE::PlayerCharacter::GetSingleton()->playerFlags.isLoading) {
 					Defeat::RescueActor(&a_this, true);

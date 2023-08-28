@@ -28,11 +28,10 @@ struct Settings
 	static inline bool bNPCDefeat{ true };						// if NPC may be defeated
 
 	// Passive Recovery
-	static inline float fKdHealthThresh{ 0.20f };		 // Player: Minimum health required to recover from defeat status
-	static inline int iKdFallbackTimer{ 90 };				 // Player: maximum time the player can stay defeated mid combat, independent of health
-	static inline int bKdFollowerUnload{ true };		 // Follower: Recover when unloading
-	static inline int bKdFollowerCombatEnd{ true };	 // Follower: Recover when combat ends
-	static inline bool bKdNPCRescueReload{ true };	 // NPC: if NPC are rescued when their 3d is being reloaded
+	static inline float fKdHealthThresh{ 0.20f };	 // Player: Minimum health required to recover from defeat status
+	static inline int iKdFallbackTimer{ 90 };			 // Player: maximum time the player can stay defeated mid combat, independent of health
+	static inline int iFollowerRescue{ 1 };				 // Follower: Auto rescue behavior | 0 Never / 1 - Combat End / 2 - Unload
+	static inline bool bNPCRescueReload{ true };	 // NPC: if NPC are rescued when their 3d is being reloaded
 
 	// Lethal
 	static inline bool bLethalEssential{ true };
@@ -106,6 +105,7 @@ struct Settings
 		ENTRY(bStripDrop),
 		ENTRY(fKdHealthThresh),
 		ENTRY(iKdFallbackTimer),
-		ENTRY(bKdFollowerUnload)
+		ENTRY(iFollowerRescue),
+		ENTRY(bNPCRescueReload)
 	};
 };
