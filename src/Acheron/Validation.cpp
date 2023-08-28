@@ -18,7 +18,6 @@ namespace Acheron
 			0x0001D4B9,	 // Emperor
 			0x0001D4BA,	 // Emperor Decoy
 			0x00044050,	 // GaiusMaro (DB06)
-			0x000C1908,	 // Red Eagle
 			0x000A733B,	 // Vigilant Tyranus (DA10)
 			0x0009CB66,	 // Malkoran (DA09)
 			0x000EBE2E,	 // Malkoran's Shade (DA09)
@@ -54,7 +53,7 @@ namespace Acheron
 			0x0002C6C8,	 // Greybeards
 			0x00103531	 // Restoration Master Qst
 		};
-		const auto exclusionpath = CONFIGPATH("Exclusion");
+		const auto exclusionpath = CONFIGPATH("Validation");
 		if (fs::exists(exclusionpath)) {
 			const auto parseList = [](const YAML::Node& a_node, std::vector<RE::FormID>& a_list){
 				if (!a_node.IsDefined())
@@ -150,7 +149,7 @@ namespace Acheron
 
 		if (!ValidateActor(a_victim) || !ValidateActor(a_aggressor))
 			return false;
-		if (!CheckVictimID(a_victim->formID))
+		if (!CheckVictimID(a_victim->formID) || !CheckAssailantID(a_aggressor->formID))
 			return false;
 
 		return CheckExclusion(VTarget::Victim, a_victim) && CheckExclusion(VTarget::Assailant, a_aggressor);
@@ -263,14 +262,6 @@ namespace Acheron
 					return false;
 			}
 			break;
-		case 0x02003368:	// Stalf
-		case 0x02003369:	// Salonia Caelia
-			{
-				const auto& DLC1VampIntro = RE::TESForm::LookupByID<RE::TESQuest>(0x0200594C);
-				if (DLC1VampIntro->currentStage == 40)
-					return false;
-			}
-			break;
 		case 0x000136C0:	// Narfi
 			{
 				const auto contract = RE::TESForm::LookupByID<RE::TESQuest>(0x0001EA5B);
@@ -352,6 +343,22 @@ namespace Acheron
 			{
 				const auto contract = RE::TESForm::LookupByID<RE::TESQuest>(0x0001EA68);
 				if (contract->IsEnabled())
+					return false;
+			}
+			break;
+		}
+
+		return true;
+	}
+
+	bool Validation::CheckAssailantID(RE::FormID a_formid)
+	{
+		switch (a_formid) {
+		case 0x02003368:	// Stalf
+		case 0x02003369:	// Salonia Caelia
+			{
+				const auto& DLC1VampIntro = RE::TESForm::LookupByID<RE::TESQuest>(0x0200594C);
+				if (DLC1VampIntro->currentStage == 40)
 					return false;
 			}
 			break;

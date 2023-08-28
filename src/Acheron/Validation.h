@@ -34,6 +34,7 @@ namespace Acheron
 		static bool ValidateActor(RE::Actor* a_actor);
 
 		static bool CheckVictimID(RE::FormID a_formid);												 // Conditional exclusion of some unique actor ids
+		static bool CheckAssailantID(RE::FormID a_formid);										 // Conditional exclusion of some unique actor ids
 		static bool CheckExclusion(VTarget a_validation, RE::Actor* a_actor);	 // Check actor for exclusion in arrays
 
 		static inline std::vector<RE::FormID> exclLocAll{};									// Always disabled locations
