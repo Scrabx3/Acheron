@@ -55,20 +55,14 @@ namespace Acheron
 		const auto actor = a_event->actor->As<RE::Actor>();
 		if (actor && actor->Is3DLoaded() && !actor->IsDead() && !Defeat::IsDefeated(actor)) {
 			auto w = worn_cache.find(actor->GetFormID());
-			if (w == worn_cache.end())
-				return EventResult::kContinue;
-
-			// TODO: Look at Actor.cpp AddWornOutfit() and check what the 2nd arg does
+			if (w != worn_cache.end()) {
+				const auto em = RE::ActorEquipManager::GetSingleton();
+				for (auto& gear : w->second) {
+					em->EquipObject(actor, gear);
+				}
+			}
 		}
-		worn_cache.erase(actor->GetFormID());
-		return EventResult::kContinue;
-	}
-
-	EventResult EventHandler::ProcessEvent(const RE::TESObjectLoadedEvent* a_event, RE::BSTEventSource<RE::TESObjectLoadedEvent>*)
-	{
-		if (!a_event->loaded)
-			worn_cache.erase(a_event->formID);
-
+		worn_cache.erase(a_event->actor->GetFormID());
 		return EventResult::kContinue;
 	}
 
@@ -96,7 +90,6 @@ namespace Acheron
 			Defeat::UndoPacify(dying);
 			logger::info("Form {:X} died and has been removed from the Pacified list", dying->GetFormID());
 		}
-		worn_cache.erase(dying->GetFormID());
 
 		return EventResult::kContinue;
 	}

@@ -306,6 +306,7 @@ namespace Acheron
 
 					Victims.emplace(formID, VictimData{ time });
 				}
+				logger::info("Loaded {} Victims from cosave", Victims.size());
 			}
 			break;
 		case Serialization::Serialize::_Pacified:
@@ -334,6 +335,7 @@ namespace Acheron
 					}
 					Pacified.insert(formID);
 				}
+				logger::info("Loaded {} Pacified from cosave", Pacified.size());
 			}
 			break;
 		}
