@@ -237,6 +237,23 @@ namespace Acheron
 		return ret;
 	}
 
+	void Defeat::ForEachVictim(std::function<VictimVistor(RE::FormID a_victimid, VictimData& a_data)> a_visitor)
+	{
+		for (auto& [formid, data] : Victims) {
+			if (a_visitor(formid, data) == VictimVistor::Break)
+				break;
+		}
+	}
+
+	std::optional<Defeat::VictimData> Defeat::GetVictimData(RE::FormID a_formid)
+	{
+		const auto where = Victims.find(a_formid);
+		if (where == Victims.end())
+			return std::nullopt;
+
+		return where->second;
+	}
+
 	void Defeat::DisableRecovery(bool a_loadedonly)
 	{
 		for (auto&& [formid, data] : Victims) {
@@ -392,5 +409,14 @@ namespace Acheron
 		Victims.clear();
 		Pacified.clear();
 	}
+
+	void Defeat::Delete(RE::FormID a_formid)
+	{
+		if (Pacified.erase(a_formid) > 0) {
+			Victims.erase(a_formid);
+			logger::info("Form {:X} has been deleted and removed from Pacified & Victim lists", a_formid);
+		}
+	}
+
 
 }	 // namespace Acheron
