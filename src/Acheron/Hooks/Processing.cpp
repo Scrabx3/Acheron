@@ -39,6 +39,7 @@ namespace Acheron
 		const auto player = RE::PlayerCharacter::GetSingleton();
 		switch (GetDefeatType(a_aggressor)) {
 		case DefeatResult::Defeat:
+			Defeat::DefeatActor(a_victim);
 			if (Settings::ConsequenceEnabled && a_victim->IsPlayerRef()) {
 				if (Random::draw<float>(0, 99.9f) < Settings::fMidCombatBlackout) {
 					if (CreateResolution(player, a_aggressor, true))
@@ -48,10 +49,11 @@ namespace Acheron
 			break;
 		case DefeatResult::Resolution:
 			{
+				Defeat::DefeatActor(a_victim);
 				if (!Settings::ConsequenceEnabled)
 					break;
 
-				if (Defeat::IsDefeated(player)) {
+				if (a_victim == player || Defeat::IsDefeated(player)) {
 					if (CreateResolution(player, a_aggressor, false)) {
 						Defeat::DisableRecovery(true);
 						break;
@@ -70,7 +72,6 @@ namespace Acheron
 		default:
 			return false;
 		}
-		Defeat::DefeatActor(a_victim);
 		return true;
 	}
 
@@ -88,24 +89,24 @@ namespace Acheron
 			return ptr && !ptr->IsCommandedActor() && ptr->Is3DLoaded() && !ptr->IsDead() && !Defeat::IsDamageImmune(ptr.get());
 		};
 
-		size_t targetcount = 0;
+		std::set<RE::FormID> targets{};	 // avoid duplicates
 		for (auto& e : agrzone->targets) {
 			const auto& target = e.targetHandle.get();
 			if (!target)
 				continue;
 			if (validtarget(target))
-				targetcount++;
+				targets.insert(target->formID);
 
 			const auto& targetgroup = target->GetCombatGroup();
 			if (!targetgroup)
 				continue;
 			for (const auto& member : targetgroup->members) {
 				if (const auto t = member.memberHandle.get(); validtarget(t))
-					targetcount++;
+					targets.insert(target->formID);
 			}
 		}
-		logger::info("Aggressor {} has {} targets", a_aggressor->GetFormID(), targetcount);
-		switch (targetcount) {
+		logger::info("Aggressor {} has {} targets", a_aggressor->GetFormID(), targets.size());
+		switch (targets.size()) {
 		case 0:
 			return DefeatResult::Cancel;
 		case 1:
