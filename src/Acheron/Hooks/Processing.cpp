@@ -57,6 +57,8 @@ namespace Acheron
 					if (CreateResolution(player, a_aggressor, false)) {
 						Defeat::DisableRecovery(true);
 						break;
+					} else if (Settings::DoesPlayerAutoRecover()) {
+						return;
 					}
 					std::thread([player]() {
 						std::this_thread::sleep_for(6s);

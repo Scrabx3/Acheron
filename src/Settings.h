@@ -54,6 +54,9 @@ struct Settings
 	static inline float fStripDestroy{ 5.0f };	// Chance for stripped item to be destroyed
 	static inline bool bStripDrop{ false };			// should non destroyed items be dropped
 
+	// Quick Access Funcs
+	static bool DoesPlayerAutoRecover() { return fKdHealthThresh || iKdFallbackTimer; }
+
 	// Table for dynamic access
 	struct StringCmp
 	{
