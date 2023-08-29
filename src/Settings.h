@@ -55,7 +55,7 @@ struct Settings
 	static inline bool bStripDrop{ false };			// should non destroyed items be dropped
 
 	// Quick Access Funcs
-	static bool DoesPlayerAutoRecover() { return fKdHealthThresh || iKdFallbackTimer; }
+	static bool DoesPlayerAutoRecover() { return iKdFallbackTimer || fKdHealthThresh && RE::PlayerCharacter::GetSingleton()->GetActorValue(RE::ActorValue::kHealRate); }
 
 	// Table for dynamic access
 	struct StringCmp
