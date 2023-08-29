@@ -58,7 +58,7 @@ namespace Acheron
 						Defeat::DisableRecovery(true);
 						break;
 					} else if (Settings::DoesPlayerAutoRecover()) {
-						return;
+						break;
 					}
 					std::thread([player]() {
 						std::this_thread::sleep_for(6s);
