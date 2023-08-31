@@ -327,6 +327,7 @@ namespace Acheron
 
 	RE::TESQuest* Resolution::SelectQuest(Type type, RE::Actor* a_victim, const std::vector<RE::Actor*>& a_victoires, bool a_incombat)
 	{
+		logger::info("Looking up quest of type {} for {:X} and {} aggressors. During Combat? {}", type, a_victim->formID, a_victoires.size(), a_incombat);
 		if (Events[type].empty()) {
 			logger::info("No custom events for type {}", type);
 			return nullptr;
@@ -352,9 +353,10 @@ namespace Acheron
 		if (weights && !ret.empty()) {
 			const auto where = Random::draw<decltype(weights)>(1, weights);
 			const auto there = std::find_if(ret.begin(), ret.end(), [where](std::pair<RE::TESQuest*, int32_t>& pair) { return where <= pair.second; });
-			logger::info("Selecting event: {} / {}) ", there->first->GetFormEditorID(), there->first->GetFormID());
+			logger::info("Selecting event: {:X} ({})) ", there->first->GetFormID(), there->first->GetFormEditorID());
 			return there->first;
 		}
+		logger::info("No quest found");
 		return nullptr;
 	}
 
