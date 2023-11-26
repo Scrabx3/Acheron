@@ -90,7 +90,6 @@ namespace Acheron
 		const auto validtarget = [](const RE::ActorPtr ptr) -> bool {
 			return ptr && !ptr->IsCommandedActor() && ptr->Is3DLoaded() && !ptr->IsDead() && !Defeat::IsDamageImmune(ptr.get());
 		};
-
 		std::set<RE::FormID> targets{};	 // avoid duplicates
 		for (auto& e : agrzone->targets) {
 			const auto& target = e.targetHandle.get();

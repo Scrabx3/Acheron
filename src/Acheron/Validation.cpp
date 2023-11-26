@@ -132,26 +132,31 @@ namespace Acheron
 
 	bool Validation::ValidatePair(RE::Actor* a_victim, RE::Actor* a_aggressor)
 	{
+		// logger::info("Validating Pair V: {:X} ; A: {:X}", a_victim->formID, a_aggressor->formID);
 		if (a_victim->IsDead() || a_aggressor->IsDead())
 			return false;
 		if (a_victim->IsInKillMove() || a_aggressor->IsInKillMove())
 			return false;
-		if (a_victim->IsPlayerRef() && !Settings::bPlayerDefeat)
-			return false;
-		if (!UsesHunterPride(a_aggressor) && !Settings::bNPCDefeat)
-			return false;
-		if (auto ref = a_victim->GetObjectReference(); ref && ref->As<RE::BGSKeywordForm>()->HasKeywordID(0xD205E))	// ActorTypeGhost
-			return false;
+		if (a_victim->IsPlayerRef()) {
+			if (!Settings::bPlayerDefeat)
+				return false;
+		} else {
+			if (!UsesHunterPride(a_aggressor) && (!Settings::bNPCDefeat || a_victim->IsHostileToActor(a_aggressor)))
+				return false;
+			if (auto ref = a_victim->GetObjectReference(); ref && ref->As<RE::BGSKeywordForm>()->HasKeywordID(0xD205E))	// ActorTypeGhost
+				return false;
+		}
 		if (!Settings::bCreatureDefeat && !IsNPC(a_aggressor))
 			return false;
-		if (!a_aggressor->IsPlayerRef() && !a_victim->IsHostileToActor(a_aggressor))
-			return false;
 
+		// logger::info("Validating Actor");
 		if (!ValidateActor(a_victim) || !ValidateActor(a_aggressor))
 			return false;
+		// logger::info("Validating ID");
 		if (!CheckVictimID(a_victim->formID) || !CheckAssailantID(a_aggressor->formID))
 			return false;
 
+		// logger::info("Checking Exclusion");
 		return CheckExclusion(VTarget::Victim, a_victim) && CheckExclusion(VTarget::Assailant, a_aggressor);
 	}
 
@@ -177,8 +182,10 @@ namespace Acheron
 			return true;
 
 		const auto base = Acheron::GetLeveledActorBase(a_actor);
-		if (!base)
+		if (!base) {
+			logger::error("Failed to retrieve Actor Base for actor {:X}", a_actor->formID);
 			return false;
+		}
 
 		switch (base->formID) {
 		case 0x0001327E:	// Tulius
@@ -380,7 +387,7 @@ namespace Acheron
 		const auto race = a_actor->GetRace();
 		if (!race || find(race->formID, exclNPC[VTarget::Either]) || find(race->formID, exclNPC[a_validation]))
 			return false;
-		// if any return true, return false
+		// visitor returns true on the first iteration that returns true, false otherwise
 		return !a_actor->VisitFactions([&](RE::TESFaction* faction, uint8_t rank) {
 			if (!faction || rank < 0)
 				return false;
