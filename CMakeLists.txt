@@ -5,7 +5,7 @@ set(ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 # ---- Project ----
 project(
     Acheron
-    VERSION 1.3.0.0
+    VERSION 1.4.1.0
     LANGUAGES CXX
 )
 
@@ -38,6 +38,14 @@ macro(set_from_environment VARIABLE)
         set(${VARIABLE} $ENV{${VARIABLE}})
     endif()
 endmacro()
+
+set_from_environment(VCPKG_ROOT)
+if(DEFINED VCPKG_ROOT)
+    set(CMAKE_TOOLCHAIN_FILE "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+    set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE STRING "")
+else()
+    message(WARNING "Variable VCPKG_ROOT is not set. Continuing without vcpkg.")
+endif()
 
 # ---- Dependencies ----
 add_subdirectory("./lib/CommonLibSSE" CommonLibSSE)
@@ -115,7 +123,7 @@ target_include_directories(
 target_link_libraries(
     "${PROJECT_NAME}"
     PUBLIC
-    CommonLibSSE::CommonLibSSE
+    CommonLibSSE
     spdlog::spdlog
     yaml-cpp
     nlohmann_json::nlohmann_json

@@ -89,13 +89,6 @@
       "configuration": "Release"
     },
     {
-      "name": "vs2022-windows-vcpkg-se-Debug",
-      "description": "",
-      "displayName": "",
-      "configurePreset": "vs2022-windows-vcpkg-se",
-      "configuration": "Debug"
-    },
-    {
       "name": "vs2022-windows-vcpkg-ae-Release",
       "description": "",
       "displayName": "",
