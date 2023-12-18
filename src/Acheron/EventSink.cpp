@@ -117,7 +117,7 @@ namespace Acheron
 
 	EventResult EventHandler::ProcessEvent(RE::InputEvent* const* a_event, RE::BSTEventSource<RE::InputEvent*>*)
 	{
-		if (!a_event)
+		if (!a_event || Settings::iHunterPrideKey == -1)
 			return EventResult::kContinue;
 
 		const auto intfcStr = RE::InterfaceStrings::GetSingleton();
@@ -129,36 +129,42 @@ namespace Acheron
 		if (!controlMap->IsMovementControlsEnabled())
 			return EventResult::kContinue;
 
+		const auto hpkey = Settings::iHunterPrideKey >= SKSE::InputMap::kMacro_GamepadOffset ?
+													 SKSE::InputMap::GamepadKeycodeToMask(Settings::iHunterPrideKey) :
+													 static_cast<uint32_t>(Settings::iHunterPrideKey);
 		for (const RE::InputEvent* input = *a_event; input; input = input->next) {
 			const auto event = input->AsButtonEvent();
 			if (!event || !event->IsDown())
 				continue;
 
-			RE::BSInputDevice* device;
-			auto dmanager = RE::BSInputDeviceManager::GetSingleton();
-			switch (input->GetDevice()) {
-			case RE::INPUT_DEVICE::kGamepad:
-				device = dmanager->GetGamepad();
-				break;
-			case RE::INPUT_DEVICE::kKeyboard:
-				device = dmanager->GetKeyboard();
-				break;
-			case RE::INPUT_DEVICE::kVirtualKeyboard:
-				device = dmanager->GetVirtualKeyboard();
-				break;
-			default:
-				device = nullptr;
-				break;
-			}
-
-			if (!device)
-				continue;
-
 			const auto idcode = event->GetIDCode();
-			if (Settings::iHunterPrideKey > -1 && idcode == static_cast<uint32_t>(Settings::iHunterPrideKey)) {
-				if (Settings::iHunterPrideKeyMod > -1 && !device->IsPressed(static_cast<uint32_t>(Settings::iHunterPrideKeyMod)))
-					continue;
-
+			if (idcode == hpkey) {
+				if (Settings::iHunterPrideKeyMod > -1) {
+					RE::BSInputDevice* device;
+					auto dmanager = RE::BSInputDeviceManager::GetSingleton();
+					switch (input->GetDevice()) {
+					case RE::INPUT_DEVICE::kGamepad:
+						device = dmanager->GetGamepad();
+						break;
+					case RE::INPUT_DEVICE::kKeyboard:
+						device = dmanager->GetKeyboard();
+						break;
+					case RE::INPUT_DEVICE::kVirtualKeyboard:
+						device = dmanager->GetVirtualKeyboard();
+						break;
+					default:
+						device = nullptr;
+						break;
+					}
+					if (device) {
+						const auto modkey = Settings::iHunterPrideKeyMod >= SKSE::InputMap::kMacro_GamepadOffset ?
+																	 SKSE::InputMap::GamepadKeycodeToMask(Settings::iHunterPrideKeyMod) :
+																	 static_cast<uint32_t>(Settings::iHunterPrideKeyMod);
+						if (!device->IsPressed(modkey)) {
+							continue;
+						}
+					}
+				}
 				auto player = RE::PlayerCharacter::GetSingleton();
 				if (player->HasSpell(GameForms::HunterPride)) {
 					player->RemoveSpell(GameForms::HunterPride);

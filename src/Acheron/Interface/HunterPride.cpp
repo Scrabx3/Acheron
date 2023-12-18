@@ -12,13 +12,17 @@ namespace Acheron::Interface
 	HunterPride::HunterPride() :
 			RE::IMenu()
 	{
-		this->inputContext = Context::kCursor;
+		this->inputContext = Context::kMenuMode;
 		this->depthPriority = 3;
 		this->menuFlags.set(
 				Flag::kUsesMenuContext,
-				Flag::kUsesCursor,
 				Flag::kCustomRendering,
 				Flag::kApplicationMenu);
+
+		auto dmanager = RE::BSInputDeviceManager::GetSingleton();
+		if (!dmanager->IsGamepadEnabled()) {
+			this->menuFlags.set(Flag::kUsesCursor);
+		}
 
 		auto scaleform = RE::BSScaleformManager::GetSingleton();
 		[[maybe_unused]] bool success = scaleform->LoadMovieEx(this, FILEPATH, [](RE::GFxMovieDef* a_def) -> void {
