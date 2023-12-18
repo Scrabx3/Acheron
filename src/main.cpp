@@ -11,6 +11,9 @@
 static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message)
 {
 	switch (message->type) {
+	case SKSE::MessagingInterface::kPostLoad:
+		Acheron::Hooks::Install();
+		break;
 	case SKSE::MessagingInterface::kSaveGame:
 		Settings::Save();
 		Acheron::Resolution::Save();
@@ -122,7 +125,7 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 
 	Acheron::Interface::HunterPride::Register();
 	Acheron::Interface::CustomMenu::Register();
-	Acheron::Hooks::Install();
+	// Acheron::Hooks::Install();
 
 	const auto serialization = SKSE::GetSerializationInterface();
 	serialization->SetUniqueID('achr');
