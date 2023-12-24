@@ -18,6 +18,7 @@ namespace Acheron
 				WorldSpace,
 				QuestDone,
 				QuestRunning,
+				CrimeFaction,
 			};
 
 			union Condition

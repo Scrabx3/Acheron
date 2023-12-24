@@ -105,6 +105,7 @@ namespace Acheron
 						makecondition(node["RaceType"], dest, ConditionType::Race);
 						makecondition(node["Faction"], dest, ConditionType::Faction);
 						makecondition(node["Keyword"], dest, ConditionType::Keyword);
+						makecondition(node["CrimeFaction"], dest, ConditionType::CrimeFaction);
 					}
 					if (const auto node = cons["Victim"]; node.IsDefined()) {
 						auto& dest = conditions[ConditionTarget::Victim];
@@ -112,6 +113,7 @@ namespace Acheron
 						makecondition(node["Keyword"], dest, ConditionType::Keyword);
 						makecondition(node["Location"], dest, ConditionType::Location);
 						makecondition(node["Worldspace"], dest, ConditionType::WorldSpace);
+						makecondition(node["CrimeFaction"], dest, ConditionType::CrimeFaction);
 					}
 					if (const auto node = cons["Quest"]; node.IsDefined()) {
 						auto& dest = conditions[ConditionTarget::Unspecified];
@@ -168,6 +170,11 @@ namespace Acheron
 		type(a_type), compare(a_compare)
 	{
 		const auto getval = [&]<typename T>(T& dest) {
+			const auto fixed = RE::BSFixedString(a_conditionobject);
+			if (fixed == "none" || fixed == "null") {
+				dest = nullptr;
+				return;
+			}
 			const auto val = FormFromString<T>(a_conditionobject);
 			if (!val)
 				throw std::exception(fmt::format("Object does not represent a valid form: {}", a_conditionobject).c_str());
@@ -182,6 +189,7 @@ namespace Acheron
 			}
 			break;
 		case ConditionType::Faction:
+		case ConditionType::CrimeFaction:
 			{
 				getval(value.faction);
 			}
@@ -250,9 +258,14 @@ namespace Acheron
 			break;
 		case ConditionType::QuestRunning:
 			{
-				result = value.quest->IsRunning();
+				result = value.quest->IsEnabled();
 			}
 			break;
+		case ConditionType::CrimeFaction:
+			{
+				result = a_actor->GetCrimeFaction() == value.faction;
+				break;
+			}
 		default:
 			logger::error("Unrecognized type: {}", type);
 			return false;
