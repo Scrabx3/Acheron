@@ -40,7 +40,7 @@ namespace Acheron
 			{ "ScribBehavior.hkx", "AshHopper"  },
 			{ "DragonBehavior.hkx", "Dragon"  },
 			{ "Dragon_Priest.hkx", "DragonPriest"  },
-			{ "DraugrBehavior", "Draugr"  },
+			{ "DraugrBehavior.hkx", "Draugr"  },
 			{ "SCBehavior.hkx", "DwarvenSphere"  },
 			{ "DwarvenSpiderBehavior.hkx", "DwarvenSpider"  },
 			{ "SteamBehavior.hkx", "DwarvenCenturion"  },
