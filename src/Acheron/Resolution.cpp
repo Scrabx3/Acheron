@@ -376,22 +376,24 @@ namespace Acheron
 		return false;
 	}
 
-	std::vector<std::pair<const std::string&, uint8_t>> Resolution::GetEvents(Type a_type)
+	std::vector<std::pair<std::string, uint8_t>> Resolution::GetEvents(Type a_type)
 	{
-		std::vector<std::pair<const std::string&, uint8_t>> ret{};
+		std::vector<std::pair<std::string, uint8_t>> ret{};
 		for (auto&& e : Events[a_type]) {
 			if (e.flags.any(EventData::Flags::Hidden))
 				continue;
 
-			ret.emplace_back(e.name, e.weight);
+			const auto name = e.flags.any(EventData::Flags::InCombat) ? fmt::format("{}(*)", e.name) : e.name;
+			ret.emplace_back(name, e.weight);
 		}
 		return ret;
 	}
 
 	void Resolution::SetEventWeight(const std::string& a_name, Type a_type, uint8_t a_weight)
 	{
+		const auto& cmp = a_name.ends_with("(*)") ? a_name.substr(0, a_name.length() - 3) : a_name;
 		for (auto&& e : Events[a_type]) {
-			if (e.name == a_name) {
+			if (e.name == cmp) {
 				e.weight = a_weight;
 				return;
 			}

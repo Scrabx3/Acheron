@@ -122,7 +122,7 @@ namespace Acheron
 		/// @brief Retrieve all existing current registered events of a given type
 		/// @param a_type The event type to retrieve events for
 		/// @return vector of pairs <name, weight> for all events of the given type
-		static std::vector<std::pair<const std::string&, uint8_t>> GetEvents(Type a_type);
+		static std::vector<std::pair<std::string, uint8_t>> GetEvents(Type a_type);
 
 		/// @brief Manipulate the weight of a given event belonging to the respective type
 		/// @param a_name The name of the event
