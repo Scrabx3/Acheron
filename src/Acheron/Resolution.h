@@ -116,8 +116,8 @@ namespace Acheron
 		/// @param a_victim The victim to look up an event for
 		/// @param a_victoires The actors which defeated the victim
 		/// @param a_incombat If combat is still ongoing
-		/// @return An event for the described environment; nullptr if none can be found
-		static RE::TESQuest* SelectQuest(Type type, RE::Actor* a_victim, const std::vector<RE::Actor*>& a_victoires, bool a_incombat);
+		/// @return If a quest managed to be selected & started
+		static bool SelectQuest(Type type, RE::Actor* a_victim, const std::vector<RE::Actor*>& a_victoires, bool a_incombat);
 
 		/// @brief Retrieve all existing current registered events of a given type
 		/// @param a_type The event type to retrieve events for

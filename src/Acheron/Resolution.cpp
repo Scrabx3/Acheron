@@ -338,39 +338,42 @@ namespace Acheron
 		logger::info("Saved resolution user data");
 	}
 
-	RE::TESQuest* Resolution::SelectQuest(Type type, RE::Actor* a_victim, const std::vector<RE::Actor*>& a_victoires, bool a_incombat)
+	bool Resolution::SelectQuest(Type type, RE::Actor* a_victim, const std::vector<RE::Actor*>& a_victoires, bool a_incombat)
 	{
+		using TWeight = int;
 		logger::info("Looking up quest of type {} for {:X} and {} aggressors. During Combat? {}", type, a_victim->formID, a_victoires.size(), a_incombat);
 		if (Events[type].empty()) {
 			logger::info("No custom events for type {}", type);
-			return nullptr;
+			return false;
 		}
 		const bool tp = Validation::AllowTeleport();
-		int priority = 0, weights = 0;
-		std::vector<std::pair<RE::TESQuest*, decltype(weights)>> ret{};
+		std::vector<std::pair<RE::TESQuest*, TWeight>> ret[EventData::Priority::p_Total];
 		for (auto& e : Events[type]) {
 			if (e.weight <= 0 || a_incombat && e.flags.none(EventData::Flags::InCombat) || !tp && e.flags.any(EventData::Flags::Teleport))
 				continue;
-			if (e.priority < priority)
-				continue;
 			if (!e.CheckConditions(a_victoires, a_victim))
 				continue;
-			if (e.priority > priority) {
-				ret.clear();
-				priority = e.priority;
-				weights = 0;
+			ret[e.priority].emplace_back(e.quest, e.weight);
+		}
+		for (auto i = EventData::Priority::p_Total - 1; i >= 0; i--) {
+			auto& it = ret[i];
+			while (!it.empty()) {
+				const auto weights = std::ranges::fold_left(it | std::ranges::views::values, 0, std::plus<>());
+				auto where = Random::draw<TWeight>(1, weights);
+				const auto there = std::find_if(it.begin(), it.end(), [where](std::pair<RE::TESQuest*, int32_t>& pair) mutable {
+					where -= pair.second;
+					return where <= 0;
+				});
+				if (there->first->Start()) {
+					logger::info("Started event: {:X} ({})) ", there->first->GetFormID(), there->first->GetFormEditorID());
+					return true;
+				}
+				logger::info("Cannot start event: {:X} ({})) ", there->first->GetFormID(), there->first->GetFormEditorID());
+				it.erase(there);
 			}
-			weights += e.weight;
-			ret.emplace_back(e.quest, weights);
 		}
-		if (weights && !ret.empty()) {
-			const auto where = Random::draw<decltype(weights)>(1, weights);
-			const auto there = std::find_if(ret.begin(), ret.end(), [where](std::pair<RE::TESQuest*, int32_t>& pair) { return where <= pair.second; });
-			logger::info("Selecting event: {:X} ({})) ", there->first->GetFormID(), there->first->GetFormEditorID());
-			return there->first;
-		}
-		logger::info("No quest found");
-		return nullptr;
+		logger::info("No event quest found");
+		return false;
 	}
 
 	std::vector<std::pair<const std::string&, uint8_t>> Resolution::GetEvents(Type a_type)

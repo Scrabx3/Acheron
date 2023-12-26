@@ -177,7 +177,6 @@ namespace Acheron
 			}
 		}
 		// List fully build. Request a Post Combat Quest & start it
-		auto q = Resolution::SelectQuest(type, a_victim, memberlist, a_incombat);
-		return q && q->Start();
+		return Resolution::SelectQuest(type, a_victim, memberlist, a_incombat);
 	}
 }
