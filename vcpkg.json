@@ -1,6 +1,6 @@
 {
   "name": "acheron",
-  "version-string": "1.3.0.0",
+  "version-string": "1.4.2.0",
   "description": "a death alternative mod for skyrim",
   "dependencies": [
     "boost-stl-interfaces",

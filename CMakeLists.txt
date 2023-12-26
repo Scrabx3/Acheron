@@ -5,7 +5,7 @@ set(ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 # ---- Project ----
 project(
     Acheron
-    VERSION 1.4.1.0
+    VERSION 1.4.2.0
     LANGUAGES CXX
 )
 
