@@ -141,7 +141,7 @@ namespace Acheron
 			if (!Settings::bPlayerDefeat)
 				return false;
 		} else {
-			if (!UsesHunterPride(a_aggressor) && (!Settings::bNPCDefeat || a_victim->IsHostileToActor(a_aggressor)))
+			if (!UsesHunterPride(a_aggressor) && (!Settings::bNPCDefeat || !a_victim->IsHostileToActor(a_aggressor)))
 				return false;
 			if (auto ref = a_victim->GetObjectReference(); ref && ref->As<RE::BGSKeywordForm>()->HasKeywordID(0xD205E))	// ActorTypeGhost
 				return false;
