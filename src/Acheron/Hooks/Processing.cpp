@@ -142,6 +142,8 @@ namespace Acheron
 			auto actor = e.get().get();
 			if (!actor || actor == a_victoire || actor->IsDead() || !actor->Is3DLoaded() || actor->IsHostileToActor(a_victoire))
 				continue;
+			if (!actor->IsInCombat() && !Defeat::IsDamageImmune(actor))
+				continue;
 
 			switch (type) {
 			case Type::Follower:
