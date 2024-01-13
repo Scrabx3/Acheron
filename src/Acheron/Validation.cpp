@@ -92,7 +92,7 @@ namespace Acheron
 					readBranch(root["Victim"], VTarget::Victim);
 					readBranch(root, VTarget::Either);
 				} catch (const std::exception& e) {
-					logger::error(e.what());
+					logger::error("{}", e.what());
 				}
 			}
 		}

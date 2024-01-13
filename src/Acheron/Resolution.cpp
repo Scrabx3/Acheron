@@ -216,7 +216,9 @@ namespace Acheron
 			}
 			break;
 		default:
-			throw std::exception(fmt::format("Invalid Type: {}", a_type).c_str());
+			{
+				throw std::exception(fmt::format("Invalid Type: {}", static_cast<int>(a_type)).c_str());
+			}
 		}
 	}
 
@@ -267,7 +269,7 @@ namespace Acheron
 				break;
 			}
 		default:
-			logger::error("Unrecognized type: {}", type);
+			logger::error("Unrecognized type: {}", static_cast<int>(type));
 			return false;
 		}
 		return result == compare;

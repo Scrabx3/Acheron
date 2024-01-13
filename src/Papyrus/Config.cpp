@@ -46,7 +46,8 @@ namespace Papyrus
 		try {
 			return std::stoi(c.c_str(), nullptr, 16);
 		} catch (const std::exception& e) {
-			logger::error(fmt::format("Unable to retrieve color setting due to error, restore default. Error: {}", e.what()));
+			const auto err = fmt::format("Unable to retrieve color setting due to error, restore default. Error: {}", e.what());
+			logger::error("{}", err);
 			*ptr = "#FF0000";
 			return 0xFF0000;
 		}
