@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Acheron/Misc.h"
+#include "Acheron/Validation.h"
 
 namespace Papyrus
 {	namespace Status
@@ -9,6 +10,7 @@ namespace Papyrus
 		inline void DisableConsequence(RE::StaticFunctionTag*, bool a_disable) { Settings::ConsequenceEnabled = !a_disable; }
 		inline bool IsProcessingDisabled(RE::StaticFunctionTag*) { return !Settings::ProcessingEnabled; }
 		inline bool IsConsequenceDisabled(RE::StaticFunctionTag*) { return !Settings::ConsequenceEnabled; }
+		inline bool IsTeleportAllowed(RE::StaticFunctionTag*) { return Acheron::Validation::AllowTeleport(); }
 
 		inline void Register(VM* a_vm)
 		{
@@ -16,6 +18,7 @@ namespace Papyrus
 			REGISTERFUNC(IsProcessingDisabled, "Acheron");
 			REGISTERFUNC(DisableConsequence, "Acheron");
 			REGISTERFUNC(IsConsequenceDisabled, "Acheron");
+			REGISTERFUNC(IsTeleportAllowed, "Acheron");
 		}
 	}	 // namespace Status
 
