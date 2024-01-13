@@ -367,10 +367,10 @@ namespace Acheron
 					return where <= 0;
 				});
 				if (there->first->Start()) {
-					logger::info("Started event: {:X} ({})) ", there->first->GetFormID(), there->first->GetFormEditorID());
+					logger::info("Started event: {:X} ({})", there->first->GetFormID(), there->first->GetFormEditorID());
 					return true;
 				}
-				logger::info("Cannot start event: {:X} ({})) ", there->first->GetFormID(), there->first->GetFormEditorID());
+				logger::info("Cannot start event: {:X} ({})", there->first->GetFormID(), there->first->GetFormEditorID());
 				it.erase(there);
 			}
 		}

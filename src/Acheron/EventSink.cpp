@@ -12,7 +12,11 @@ namespace Acheron
 		auto source = const_cast<RE::Actor*>(a_event->holder->As<RE::Actor>());
 		// constexpr std::array events{ "MTState", "IdleStop", "JumpLandEnd" };
 		if (a_event->tag == "MTState") {
-			source->NotifyAnimationGraph("BleedoutStart");
+			if (auto process = source->currentProcess) {
+				process->PlayIdle(source, GameForms::BleedoutStart, source);
+			} else {
+				source->NotifyAnimationGraph("BleedoutStart");
+			}
 		}
 		return EventResult::kContinue;
 	}

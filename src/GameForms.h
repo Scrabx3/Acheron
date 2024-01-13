@@ -11,6 +11,8 @@ namespace Acheron
 
 		// Vanilla Game
 		static inline RE::TESGlobal* KillMove;
+		static inline RE::TESIdleForm* BleedoutStart;
+		static inline RE::TESIdleForm* BleedoutStop;
 
 		// Acheron Forms
 		static inline RE::BGSKeyword* Defeated;
@@ -33,6 +35,13 @@ namespace Acheron
 		{
 			KillMove = RE::TESForm::LookupByID<RE::TESGlobal>(0x00100F19);
 			if (!KillMove)
+				return false;
+
+			BleedoutStart = RE::TESForm::LookupByID<RE::TESIdleForm>(0x00013ECC);
+			if (!BleedoutStart)
+				return false;
+			BleedoutStop = RE::TESForm::LookupByID<RE::TESIdleForm>(0x00013ECE);
+			if (!BleedoutStop)
 				return false;
 
 			LOOKUPFORM(Defeated, 0x801);

@@ -70,7 +70,11 @@ namespace Acheron
 
 		a_victim->boolFlags.set(RE::Actor::BOOL_FLAGS::kNoBleedoutRecovery);
 		if (a_victim->Is3DLoaded()) {
-			a_victim->NotifyAnimationGraph("BleedoutStart");
+			if (auto process = a_victim->currentProcess) {
+				process->PlayIdle(a_victim, GameForms::BleedoutStart, nullptr);
+			} else {
+				a_victim->NotifyAnimationGraph("BleedoutStart");
+			}
 		}
 
 		const auto health = a_victim->GetActorValue(RE::ActorValue::kHealth);
@@ -111,7 +115,11 @@ namespace Acheron
 
 		a_victim->boolFlags.reset(RE::Actor::BOOL_FLAGS::kNoBleedoutRecovery);
 		if (a_victim->Is3DLoaded() && !a_victim->IsDead()) {
-			a_victim->NotifyAnimationGraph("BleedoutStop");
+			if (auto process = a_victim->currentProcess) {
+				process->PlayIdle(a_victim, GameForms::BleedoutStop, a_victim);
+			} else {
+				a_victim->NotifyAnimationGraph("BleedoutStop");
+			}
 		}
 
 		if (undo_pacify) {
