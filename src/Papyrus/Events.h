@@ -33,6 +33,13 @@ namespace Papyrus
 	inline void UnregisterForActorRescued_Alias(VM* a_vm, RE::VMStackID a_stackID, RE::StaticFunctionTag*, RE::BGSRefAlias* obj) { UNREGISTER(_actorrescued); }
 	inline void RegisterForActorRescued_MgEff(VM* a_vm, RE::VMStackID a_stackID, RE::StaticFunctionTag*, RE::ActiveEffect* obj) { REGISTER(_actorrescued); }
 	inline void UnregisterForActorRescued_MgEff(VM* a_vm, RE::VMStackID a_stackID, RE::StaticFunctionTag*, RE::ActiveEffect* obj) { UNREGISTER(_actorrescued); }
+	
+	inline void RegisterForPlayerDeathEvent(VM* a_vm, RE::VMStackID a_stackID, RE::StaticFunctionTag*, RE::TESForm* obj) { REGISTER(_playerdeathevent); }
+	inline void UnregisterForPlayerDeathEvent(VM* a_vm, RE::VMStackID a_stackID, RE::StaticFunctionTag*, RE::TESForm* obj) { UNREGISTER(_playerdeathevent); }
+	inline void RegisterForPlayerDeathEvent_Alias(VM* a_vm, RE::VMStackID a_stackID, RE::StaticFunctionTag*, RE::BGSRefAlias* obj) { REGISTER(_playerdeathevent); }
+	inline void UnregisterForPlayerDeathEvent_Alias(VM* a_vm, RE::VMStackID a_stackID, RE::StaticFunctionTag*, RE::BGSRefAlias* obj) { UNREGISTER(_playerdeathevent); }
+	inline void RegisterForPlayerDeathEvent_MgEff(VM* a_vm, RE::VMStackID a_stackID, RE::StaticFunctionTag*, RE::ActiveEffect* obj) { REGISTER(_playerdeathevent); }
+	inline void UnregisterForPlayerDeathEvent_MgEff(VM* a_vm, RE::VMStackID a_stackID, RE::StaticFunctionTag*, RE::ActiveEffect* obj) { UNREGISTER(_playerdeathevent); }
 
 	inline void RegisterForHunterPrideSelect(VM* a_vm, RE::VMStackID a_stackID, RE::StaticFunctionTag*, RE::TESForm* obj) { REGISTER(_hunterprideselect); }
 	inline void UnregisterForHunterPrideSelect(VM* a_vm, RE::VMStackID a_stackID, RE::StaticFunctionTag*, RE::TESForm* obj) { UNREGISTER(_hunterprideselect); }

@@ -6,6 +6,7 @@ namespace Serialization
   {
 	  _actordefeated.Save(a_intfc, ActorDefeated, a_version);
 		_actorrescued.Save(a_intfc, ActorRescued, a_version);
+		_playerdeathevent.Save(a_intfc, PlayerDeathEvent, a_version);
 		_hunterprideselect.Save(a_intfc, HunterPrideSelect, a_version);
 	}
 
@@ -14,10 +15,13 @@ namespace Serialization
 	  switch (a_type) {
 	  case ActorDefeated:
 		  _actordefeated.Load(a_intfc);
-		  break;
-	  case ActorRescued:
-		  _actorrescued.Load(a_intfc);
-		  break;
+			break;
+		case ActorRescued:
+			_actorrescued.Load(a_intfc);
+			break;
+		case PlayerDeathEvent:
+			_playerdeathevent.Load(a_intfc);
+			break;
 		case HunterPrideSelect:
 			_hunterprideselect.Load(a_intfc);
 			break;
@@ -31,6 +35,7 @@ namespace Serialization
   {
 	  _actordefeated.Revert(a_intfc);
 	  _actorrescued.Revert(a_intfc);
+		_playerdeathevent.Revert(a_intfc);
 		_hunterprideselect.Revert(a_intfc);
 	}
 
@@ -38,6 +43,7 @@ namespace Serialization
   {
 	  _actordefeated.Unregister(a_handle);
 	  _actorrescued.Unregister(a_handle);
+		_playerdeathevent.Unregister(a_handle);
 		_hunterprideselect.Unregister(a_handle);
 	}
 

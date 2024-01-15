@@ -10,12 +10,14 @@ namespace Serialization
 		{
 			ActorDefeated = 'adtd',
 			ActorRescued = 'arsd',
+			PlayerDeathEvent = 'plde',
 			HunterPrideSelect = 'hps'
 		};
 
 	public:
 		SKSE::RegistrationSet<const RE::Actor*> _actordefeated{ "OnActorDefeated"sv };
 		SKSE::RegistrationSet<const RE::Actor*> _actorrescued{ "OnActorRescued"sv };
+		SKSE::RegistrationSet<> _playerdeathevent{ "OnPlayerDeathEvent"sv };
 		SKSE::RegistrationSet<int32_t, const RE::Actor*> _hunterprideselect{ "OnHunterPrideSelect"sv };
 
 	public:

@@ -2,6 +2,7 @@
 
 #include "Acheron/Defeat.h"
 #include "Acheron/Resolution.h"
+#include "Serialization/EventManager.h"
 
 namespace Acheron
 {
@@ -177,6 +178,10 @@ namespace Acheron
 			}
 		}
 		// List fully build. Request a Post Combat Quest & start it
-		return Resolution::SelectQuest(type, a_victim, memberlist, a_incombat);
+		if (Resolution::SelectQuest(type, a_victim, memberlist, a_incombat)) {
+			Serialization::EventManager::GetSingleton()->_playerdeathevent.QueueEvent();
+			return true;
+		}
+		return false;
 	}
 }

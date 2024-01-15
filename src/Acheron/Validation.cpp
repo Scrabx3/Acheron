@@ -149,14 +149,21 @@ namespace Acheron
 		if (!Settings::bCreatureDefeat && !IsNPC(a_aggressor))
 			return false;
 
-		// logger::info("Validating Actor");
+		// if (a_victim->IsPlayerRef()) {
+		// 	logger::info("Validating Actor");
+		// }
 		if (!ValidateActor(a_victim) || !ValidateActor(a_aggressor))
 			return false;
-		// logger::info("Validating ID");
+
+		// if (a_victim->IsPlayerRef()) {
+		// 	logger::info("Validating ID");
+		// }
 		if (!CheckVictimID(a_victim->formID) || !CheckAssailantID(a_aggressor->formID))
 			return false;
 
-		// logger::info("Checking Exclusion");
+		// if (a_victim->IsPlayerRef()) {
+		// 	logger::info("Validating Exclusion");
+		// }
 		return CheckExclusion(VTarget::Victim, a_victim) && CheckExclusion(VTarget::Assailant, a_aggressor);
 	}
 
