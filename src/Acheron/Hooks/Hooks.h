@@ -19,7 +19,6 @@ namespace Acheron
 		static void UpdatePlayer(RE::PlayerCharacter* player, float delta);
 		static RE::NiAVObject* Load3D(RE::Character& a_this, bool a_arg1);
 		static void UpdateCharacter(RE::Character* a_this, float a_delta);
-		static void UpdateCombat(RE::Character* a_this);
 		static void UpdateCombatControllerSettings(RE::Character* a_this);
 		static void WeaponHit(RE::Actor* a_target, RE::HitData& a_hitData);
 		static void MagicHit(uint64_t* unk1, RE::ActiveEffect& effect, uint64_t* unk3, uint64_t* unk4, uint64_t* unk5);
@@ -44,7 +43,6 @@ namespace Acheron
 		static inline REL::Relocation<decltype(UpdatePlayer)> _PlUpdate;
 		static inline REL::Relocation<decltype(Load3D)> _Load3D;
 		static inline REL::Relocation<decltype(UpdateCharacter)> _UpdateCharacter;
-		static inline REL::Relocation<decltype(UpdateCombat)> _UpdateCombat;
 		static inline REL::Relocation<decltype(UpdateCombatControllerSettings)> _UpdateCombatControllerSettings;
 		static inline REL::Relocation<decltype(WeaponHit)> _WeaponHit;
 		static inline REL::Relocation<decltype(MagicHit)> _MagicHit;

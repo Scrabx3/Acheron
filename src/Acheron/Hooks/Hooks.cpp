@@ -27,8 +27,8 @@ namespace Acheron
 		REL::Relocation<std::uintptr_t> explH{ RELID(42677, 43849), OFFSET(0x38C, 0x3C2) };
 		_ExplosionHit = trampoline.write_call<5>(explH.address(), ExplosionHit);
 		// ==================================================
-		// REL::Relocation<std::uintptr_t> det{ RELID(41659, 42742), OFFSET(0x526, 0x67B) };
-		// _DoDetect = trampoline.write_call<5>(det.address(), DoDetect);
+		REL::Relocation<std::uintptr_t> det{ RELID(41659, 42742), OFFSET(0x526, 0x67B) };
+		_DoDetect = trampoline.write_call<5>(det.address(), DoDetect);
 		// ==================================================
 		REL::Relocation<std::uintptr_t> console{ RELID(52065, 52952), OFFSET(0xE2, 0x52) };
 		_CompileAndRun = trampoline.write_call<5>(console.address(), CompileAndRun);
@@ -44,9 +44,6 @@ namespace Acheron
 		// ==================================================
 		REL::Relocation<std::uintptr_t> upccs{ RE::Character::VTABLE[0] };
 		_UpdateCombatControllerSettings = upccs.write_vfunc(0x11B, UpdateCombatControllerSettings);
-		// ==================================================
-		// REL::Relocation<std::uintptr_t> upc{ RE::Character::VTABLE[0] };
-		// _UpdateCombat = upc.write_vfunc(0x0E4, UpdateCombat);
 
 		logger::info("Hooks installed");
 	}
@@ -146,21 +143,29 @@ namespace Acheron
 		CalcDamageOverTime(a_this);
 	}
 
-	// void Hooks::UpdateCombat(RE::Character* a_this)
-	// {
-	// 	if (!Defeat::IsPacified(a_this)) {
-	// 		_UpdateCombat(a_this);
-	// 	} else if (a_this->IsInCombat()) {
-	// 		a_this->StopCombat();
-	// 	}
-	// }
-
 	void Hooks::UpdateCombatControllerSettings(RE::Character* a_this)
 	{
-		if (Defeat::IsPacified(a_this) && a_this->IsInCombat()) {
-			a_this->StopCombat();
-		}
 		_UpdateCombatControllerSettings(a_this);
+		if (Defeat::IsPacified(a_this)) {
+			if (a_this->IsInCombat()) {
+				a_this->StopCombat();
+			}
+			return;
+		}
+		auto group = a_this->GetCombatGroup();
+		if (!group) {
+			return;
+		}
+		std::vector<RE::CombatTarget*> remove_these{};
+		for (auto&& cmbtarget : group->targets) {
+			auto targetptr = cmbtarget.targetHandle.get();
+			if (targetptr && Defeat::IsPacified(targetptr.get())) {
+				remove_these.push_back(&cmbtarget);
+			}
+		}
+		for (auto&& remove : remove_these) {
+			group->targets.erase(remove);
+		}
 	}
 
 	void Hooks::CalcDamageOverTime(RE::Actor* a_target)
@@ -357,14 +362,14 @@ namespace Acheron
 		return _ExplosionHit(a_explosion, a_flt, a_actor);
 	}
 
-	// uint8_t* Hooks::DoDetect(RE::Actor* viewer, RE::Actor* target, int32_t& detectval, uint8_t& unk04, uint8_t& unk05, uint32_t& unk06, RE::NiPoint3& pos, float& unk08, float& unk09, float& unk10)
-	// {
-	// 	if (viewer && Defeat::IsPacified(viewer) || target && Defeat::IsPacified(target)) {
-	// 		detectval = -1000;
-	// 		return nullptr;
-	// 	}
-	// 	return _DoDetect(viewer, target, detectval, unk04, unk05, unk06, pos, unk08, unk09, unk10);
-	// }
+	uint8_t* Hooks::DoDetect(RE::Actor* viewer, RE::Actor* target, int32_t& detectval, uint8_t& unk04, uint8_t& unk05, uint32_t& unk06, RE::NiPoint3& pos, float& unk08, float& unk09, float& unk10)
+	{
+		if (target && Defeat::IsPacified(target)) {
+			detectval = -1000;
+			return nullptr;
+		}
+		return _DoDetect(viewer, target, detectval, unk04, unk05, unk06, pos, unk08, unk09, unk10);
+	}
 
 	Hooks::ProcessType Hooks::GetProcessType(RE::Actor* a_aggressor, bool a_lethal)
 	{
