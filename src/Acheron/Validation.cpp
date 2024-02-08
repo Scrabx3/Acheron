@@ -50,9 +50,9 @@ namespace Acheron
 		exclFaction[VTarget::Either] = {
 			Acheron::GameForms::IgnoredFaction->GetFormID(),
 			0x00028347,	 // Alduin fac
-			0x00050920,	 // Jarl
-			0x0002C6C8,	 // Greybeards
-			0x00103531	 // Restoration Master Qst
+			// 0x00050920,	 // Jarl
+			// 0x0002C6C8,	 // Greybeards
+			0x00103531	// Restoration Master Qst
 		};
 		const auto exclusionpath = CONFIGPATH("Validation");
 		if (fs::exists(exclusionpath)) {
