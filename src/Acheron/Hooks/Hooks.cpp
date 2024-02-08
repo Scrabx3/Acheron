@@ -115,11 +115,11 @@ namespace Acheron
 					return ret;
 				}
 			}
-			// if (auto process = a_this.currentProcess) {
-			// 	process->PlayIdle(&a_this, GameForms::BleedoutStart, &a_this);
-			// } else {
+			if (auto process = a_this.currentProcess) {
+				process->PlayIdle(&a_this, GameForms::BleedoutStart, &a_this);
+			} else {
 				a_this.NotifyAnimationGraph("BleedoutStart");
-			// }
+			}
 			if (auto ref = a_this.GetObjectReference()) {
 				ref->As<RE::BGSKeywordForm>()->AddKeywords({ GameForms::Defeated, GameForms::Pacified });
 			}
