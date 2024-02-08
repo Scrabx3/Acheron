@@ -48,6 +48,7 @@ namespace Acheron
 			0x000A6F0E	 // Companion Farkas Werewolf, Ambusher05 (C02)
 		};
 		exclFaction[VTarget::Either] = {
+			Acheron::GameForms::IgnoredFaction->GetFormID(),
 			0x00028347,	 // Alduin fac
 			0x00050920,	 // Jarl
 			0x0002C6C8,	 // Greybeards
@@ -55,7 +56,7 @@ namespace Acheron
 		};
 		const auto exclusionpath = CONFIGPATH("Validation");
 		if (fs::exists(exclusionpath)) {
-			const auto parseList = [](const YAML::Node& a_node, std::vector<RE::FormID>& a_list){
+			const auto parseList = [](const YAML::Node& a_node, std::vector<RE::FormID>& a_list) {
 				if (!a_node.IsDefined())
 					return;
 
@@ -112,7 +113,7 @@ namespace Acheron
 			}
 		}
 
-		if (static const auto DGIntimidateQuest = RE::TESForm::LookupByID<RE::TESQuest>(0x00047AE6); DGIntimidateQuest->IsEnabled())	// Brawl Quest
+		if (static const auto DGIntimidateQuest = RE::TESForm::LookupByID<RE::TESQuest>(0x00047AE6); DGIntimidateQuest->currentStage == 10)	 // Brawl Quest
 			return false;
 		if (static const auto MQ101 = RE::TESForm::LookupByID<RE::TESQuest>(0x0003372B); MQ101->currentStage > 1 && MQ101->currentStage < 1000)	 // Vanilla Intro
 			return false;
@@ -132,14 +133,14 @@ namespace Acheron
 
 	bool Validation::ValidatePair(RE::Actor* a_victim, RE::Actor* a_aggressor)
 	{
-		// logger::info("Validating Pair V: {:X} ; A: {:X}", a_victim->formID, a_aggressor->formID);
 		if (a_victim->IsDead() || a_aggressor->IsDead())
 			return false;
 		if (a_victim->IsInKillMove() || a_aggressor->IsInKillMove())
 			return false;
 		if (a_victim->IsPlayerRef()) {
-			if (!Settings::bPlayerDefeat)
+			if (!Settings::bPlayerDefeat) {
 				return false;
+			}
 		} else {
 			if (!UsesHunterPride(a_aggressor) && (!Settings::bNPCDefeat || !a_victim->IsHostileToActor(a_aggressor)))
 				return false;
@@ -149,21 +150,10 @@ namespace Acheron
 		if (!Settings::bCreatureDefeat && !IsNPC(a_aggressor))
 			return false;
 
-		// if (a_victim->IsPlayerRef()) {
-		// 	logger::info("Validating Actor");
-		// }
 		if (!ValidateActor(a_victim) || !ValidateActor(a_aggressor))
 			return false;
-
-		// if (a_victim->IsPlayerRef()) {
-		// 	logger::info("Validating ID");
-		// }
 		if (!CheckVictimID(a_victim->formID) || !CheckAssailantID(a_aggressor->formID))
 			return false;
-
-		// if (a_victim->IsPlayerRef()) {
-		// 	logger::info("Validating Exclusion");
-		// }
 		return CheckExclusion(VTarget::Victim, a_victim) && CheckExclusion(VTarget::Assailant, a_aggressor);
 	}
 
@@ -183,14 +173,22 @@ namespace Acheron
 
 	bool Validation::ValidateActor(RE::Actor* a_actor)
 	{
-		if (a_actor->IsChild() || a_actor->IsInFaction(Acheron::GameForms::IgnoredFaction))
+		if (a_actor->IsChild()) {
 			return false;
-		if (a_actor->IsPlayerRef())
+		}
+		const auto furnihandle = a_actor->GetOccupiedFurniture();
+		if (const auto furni = furnihandle.get()) {
+			static const auto DA02BoethiahPillar = RE::TESForm::LookupByID<RE::BGSKeyword>(0x000F3B64);
+			if (furni->HasKeyword(DA02BoethiahPillar))
+			return false;
+		}
+		if (a_actor->IsPlayerRef()) {
 			return true;
+		}
 
 		const auto base = Acheron::GetLeveledActorBase(a_actor);
 		if (!base) {
-			logger::error("Failed to retrieve Actor Base for actor {:X}", a_actor->formID);
+			logger::info("Invalid Actor {:X}: Missing Base", a_actor->GetFormID());
 			return false;
 		}
 
@@ -238,13 +236,6 @@ namespace Acheron
 					return false;
 			}
 			break;
-		}
-
-		const auto furnihandle = a_actor->GetOccupiedFurniture();
-		if (const auto furni = furnihandle.get()) {
-			static const auto DA02BoethiahPillar = RE::TESForm::LookupByID<RE::BGSKeyword>(0x000F3B64);
-			if (furni->HasKeyword(DA02BoethiahPillar))
-				return false;
 		}
 
 		return true;
@@ -383,23 +374,26 @@ namespace Acheron
 
 	bool Validation::CheckExclusion(VTarget a_validation, RE::Actor* a_actor)
 	{
-		const auto find = [&](RE::FormID id, std::vector<RE::FormID> list) {
-			return std::find(list.begin(), list.end(), id) != list.end();
+		const auto find = [&](RE::FormID a_id, const std::vector<RE::FormID> a_list[3]) -> bool {
+			return std::ranges::contains(a_list[VTarget::Either], a_id) || std::ranges::contains(a_list[a_validation], a_id);
 		};
-		if (find(a_actor->formID, exclRef[VTarget::Either]) || find(a_actor->formID, exclRef[a_validation]))
+		if (find(a_actor->GetFormID(), exclRef)) {
 			return false;
+		}
 		const auto base = Acheron::GetLeveledActorBase(a_actor);
-		if (!base || find(base->formID, exclNPC[VTarget::Either]) || find(base->formID, exclNPC[a_validation]))
+		if (base && find(a_actor->GetFormID(), exclNPC)) {
 			return false;
+		}
 		const auto race = a_actor->GetRace();
-		if (!race || find(race->formID, exclNPC[VTarget::Either]) || find(race->formID, exclNPC[a_validation]))
+		if (race && find(a_actor->GetFormID(), exclRace)) {
 			return false;
+		}
 		// visitor returns true on the first iteration that returns true, false otherwise
 		return !a_actor->VisitFactions([&](RE::TESFaction* faction, uint8_t rank) {
 			if (!faction || rank < 0)
 				return false;
 
-			return find(faction->formID, exclFaction[VTarget::Either]) || find(faction->formID, exclFaction[a_validation]);
+			return find(faction->formID, exclFaction);
 		});
 	}
 
