@@ -12,29 +12,29 @@ namespace Serialization
 		EventManager::GetSingleton()->Save(a_intfc, _Version);
 
 		if (!a_intfc->OpenRecord(_Defeated, _Version))
-			logger::error("Failed to open record <Defeated>"sv);
+			logger::error("Failed to open record <Defeated>");
 		else
 			Acheron::Defeat::Save(a_intfc, _Defeated);
 
 		if (!a_intfc->OpenRecord(_Pacified, _Version))
-			logger::error("Failed to open record <Pacified>"sv);
+			logger::error("Failed to open record <Pacified>");
 		else
 			Acheron::Defeat::Save(a_intfc, _Pacified);
 
 		if (!a_intfc->OpenRecord(_HunterPride, _Version))
-			logger::error("Failed to open record <HunterPride>"sv);
+			logger::error("Failed to open record <HunterPride>");
 		else
 			Acheron::Interface::HunterPride::Save(a_intfc);
 
 		if (!a_intfc->OpenRecord(_Processing, _Version))
-			logger::error("Failed to open record <Processing>"sv);
+			logger::error("Failed to open record <Processing>");
 		else if (!a_intfc->WriteRecordData(Settings::ProcessingEnabled))
-			logger::error("Failed to serialize record <Processing>"sv);
+			logger::error("Failed to serialize record <Processing>");
 
 		if (!a_intfc->OpenRecord(_Consequence, _Version))
-			logger::error("Failed to open record <Processing>"sv);
+			logger::error("Failed to open record <Processing>");
 		else if (!a_intfc->WriteRecordData(Settings::ConsequenceEnabled))
-			logger::error("Failed to serialize record <Processing>"sv);
+			logger::error("Failed to serialize record <Processing>");
 
 		logger::info("Finished writing data to cosave");
 	}
@@ -49,7 +49,7 @@ namespace Serialization
 				logger::info("Invalid Version for loaded Data of Type = {}. Expected = {}; Got = {}", GetTypeName(type), _Version, version);
 				continue;
 			}
-			logger::info("Loading record {}"sv, GetTypeName(type));
+			logger::info("Loading record {}", GetTypeName(type));
 			switch (type) {
 			case _Defeated:
 			case _Pacified:

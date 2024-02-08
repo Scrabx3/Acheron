@@ -100,11 +100,11 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 		spdlog::set_pattern("[%T] [%^%l%$] %v"s);
 #endif
 
-		logger::info("{} v{}"sv, Plugin::NAME, Plugin::VERSION.string());
+		logger::info("{} v{}", Plugin::NAME, Plugin::VERSION.string());
 		return true;
 	};
 	if (a_skse->IsEditor()) {
-		logger::critical("Loaded in editor, marking as incompatible"sv);
+		logger::critical("Loaded in editor, marking as incompatible");
 		return false;
 	} else if (!InitLogger()) {
 		return false;
@@ -134,7 +134,7 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 	serialization->SetRevertCallback(Serialization::Serialize::RevertCallback);
 	serialization->SetFormDeleteCallback(Serialization::Serialize::FormDeleteCallback);
 
-	logger::info("{} loaded"sv, Plugin::NAME);
+	logger::info("{} loaded", Plugin::NAME);
 
 	return true;
 }
