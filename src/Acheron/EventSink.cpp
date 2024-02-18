@@ -130,7 +130,7 @@ namespace Acheron
 			return EventResult::kContinue;
 
 		const auto controlMap = RE::ControlMap::GetSingleton();
-		if (!controlMap->IsMovementControlsEnabled())
+		if (!Acheron::IsMovementControlsEnabled(controlMap))
 			return EventResult::kContinue;
 
 		const auto hpkey = Settings::iHunterPrideKey >= SKSE::InputMap::kMacro_GamepadOffset ?

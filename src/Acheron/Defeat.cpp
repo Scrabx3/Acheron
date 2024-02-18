@@ -48,10 +48,10 @@ namespace Acheron
 		VictimData data{ RE::Calendar::GetSingleton()->GetDaysPassed() };
 		if (a_victim->IsPlayerRef()) {
 			const auto cmap = RE::ControlMap::GetSingleton();
-			cmap->ToggleControls(RE::UserEvents::USER_EVENT_FLAG::kActivate, false);
-			cmap->ToggleControls(RE::UserEvents::USER_EVENT_FLAG::kJumping, false);
-			cmap->ToggleControls(RE::UserEvents::USER_EVENT_FLAG::kMainFour, false);
-			cmap->ToggleControls(RE::UserEvents::USER_EVENT_FLAG::kPOVSwitch, false);
+			Acheron::ToggleControls(cmap, RE::UserEvents::USER_EVENT_FLAG::kActivate, false);
+			Acheron::ToggleControls(cmap, RE::UserEvents::USER_EVENT_FLAG::kJumping, false);
+			Acheron::ToggleControls(cmap, RE::UserEvents::USER_EVENT_FLAG::kMainFour, false);
+			Acheron::ToggleControls(cmap, RE::UserEvents::USER_EVENT_FLAG::kPOVSwitch, false);
 			a_victim->AddAnimationGraphEventSink(EventHandler::GetSingleton());
 			RE::PlayerCamera::GetSingleton()->ForceThirdPerson();
 
@@ -98,10 +98,10 @@ namespace Acheron
 
 		if (a_victim->IsPlayerRef()) {
 			auto cmap = RE::ControlMap::GetSingleton();
-			cmap->ToggleControls(RE::UserEvents::USER_EVENT_FLAG::kActivate, true);
-			cmap->ToggleControls(RE::UserEvents::USER_EVENT_FLAG::kJumping, true);
-			cmap->ToggleControls(RE::UserEvents::USER_EVENT_FLAG::kMainFour, true);
-			cmap->ToggleControls(RE::UserEvents::USER_EVENT_FLAG::kPOVSwitch, true);
+			Acheron::ToggleControls(cmap, RE::UserEvents::USER_EVENT_FLAG::kActivate, true);
+			Acheron::ToggleControls(cmap, RE::UserEvents::USER_EVENT_FLAG::kJumping, true);
+			Acheron::ToggleControls(cmap, RE::UserEvents::USER_EVENT_FLAG::kMainFour, true);
+			Acheron::ToggleControls(cmap, RE::UserEvents::USER_EVENT_FLAG::kPOVSwitch, true);
 			a_victim->RemoveAnimationGraphEventSink(EventHandler::GetSingleton());
 		} else {
 			if (a_victim->IsPlayerTeammate()) {
