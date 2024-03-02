@@ -73,4 +73,8 @@ namespace Acheron
 		std::transform(str.cbegin(), str.cend(), str.begin(), [](unsigned char c) { return static_cast<unsigned char>(std::tolower(c)); });
 	}
 
+	// ControlMap
+	void ToggleControls(RE::ControlMap* controlMap, RE::ControlMap::UEFlag a_flags, bool a_enable);
+	bool IsMovementControlsEnabled(RE::ControlMap* controlMap);
+
 }  // namespace Acheron

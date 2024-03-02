@@ -106,6 +106,57 @@ namespace Acheron
 		return k ? k->HasKeywordID(0xA8668) : false;	// DaedricArtifact
 	}
 
+	inline static void ToggleControls_ae_pre1130(RE::ControlMap* controlMap, RE::ControlMap::UEFlag a_flags, bool a_enable)
+	{
+		auto pEnabledControls = reinterpret_cast<stl::enumeration<RE::ControlMap::UEFlag, std::uint32_t>*>(reinterpret_cast<uintptr_t>(controlMap) + std::ptrdiff_t(0x118));
+		auto pUnk11C = reinterpret_cast<stl::enumeration<RE::ControlMap::UEFlag, std::uint32_t>*>(reinterpret_cast<uintptr_t>(controlMap) + std::ptrdiff_t(0x11C));
+
+		auto oldState = *pEnabledControls;
+
+		if (a_enable) {
+			pEnabledControls->set(a_flags);
+			if (*pUnk11C != RE::ControlMap::UEFlag::kInvalid) {
+				pUnk11C->set(a_flags);
+			}
+		} else {
+			pEnabledControls->reset(a_flags);
+			if (*pUnk11C != RE::ControlMap::UEFlag::kInvalid) {
+				pUnk11C->reset(a_flags);
+			}
+		}
+
+		RE::UserEventEnabled event{ *pEnabledControls, oldState };
+		controlMap->SendEvent(std::addressof(event));
+	}
+
+	void ToggleControls(RE::ControlMap* controlMap, RE::ControlMap::UEFlag a_flags, bool a_enable)
+	{
+#ifdef SKYRIM_SUPPORT_AE
+		if (REL::Module::get().version().compare(SKSE::RUNTIME_1_6_1130) == std::strong_ordering::less) {
+			ToggleControls_ae_pre1130(controlMap, a_flags, a_enable);
+			return;
+		}
+#endif
+		controlMap->ToggleControls(a_flags, a_enable);
+	}
+
+	inline static bool IsControlsFlagEnabled_ae_pre1130(RE::ControlMap* controlMap, RE::ControlMap::UEFlag a_flags)
+	{
+		auto pEnabledControls = reinterpret_cast<stl::enumeration<RE::ControlMap::UEFlag, std::uint32_t>*>(reinterpret_cast<uintptr_t>(controlMap) + std::ptrdiff_t(0x118));
+
+		return pEnabledControls->all(a_flags);
+	}
+
+	bool IsMovementControlsEnabled(RE::ControlMap* controlMap)
+	{
+#ifdef SKYRIM_SUPPORT_AE
+		if (REL::Module::get().version().compare(SKSE::RUNTIME_1_6_1130) == std::strong_ordering::less) {
+			return IsControlsFlagEnabled_ae_pre1130(controlMap, RE::ControlMap::UEFlag::kMovement);
+		}
+#endif
+		return controlMap->IsMovementControlsEnabled();
+	}
+
 
 	// c @ Fenix31415
 	// Probably someone will find it useful.Didn't find it in clib. to call it :
