@@ -157,6 +157,9 @@ namespace Acheron
 			return;
 		}
 		std::vector<RE::CombatTarget*> remove_these{};
+
+		group->lock.LockForWrite();
+
 		for (auto&& cmbtarget : group->targets) {
 			auto targetptr = cmbtarget.targetHandle.get();
 			if (targetptr && Defeat::IsPacified(targetptr.get())) {
@@ -164,8 +167,12 @@ namespace Acheron
 			}
 		}
 		for (auto&& remove : remove_these) {
-			group->targets.erase(remove);
+			if (remove->targetHandle.get().get() != nullptr && remove->attackedMember.get().get() != nullptr) {
+				group->targets.erase(remove);
+			}
 		}
+
+		group->lock.UnlockForWrite();
 	}
 
 	void Hooks::CalcDamageOverTime(RE::Actor* a_target)
