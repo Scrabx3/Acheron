@@ -10,8 +10,11 @@ namespace Acheron
 	{
 		const auto split = a_string.find("|");
 		const auto formid = std::stoi(a_string.substr(0, split).data(), nullptr, base);
-		if constexpr (std::is_pointer<T>::value) {
-			if (split == std::string_view::npos) {
+		if (split == std::string_view::npos) {
+			if constexpr (std::is_same<T, RE::FormID>::value) {
+				return formid;
+			} else {
+				static_assert(std::is_pointer<T>::value);
 				using U = std::remove_pointer<T>::type;
 				return RE::TESForm::LookupByID<U>(formid);
 			}
