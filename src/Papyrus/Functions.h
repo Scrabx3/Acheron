@@ -76,7 +76,7 @@ namespace Papyrus
 		{
 			REGISTERFUNC(SetLinkedRef, "Acheron");
 			REGISTERFUNC(GetItemsByKeywords, "Acheron");
-			REGISTERFUNC(SetLinkedRef, "Acheron");
+			REGISTERFUNC(RemoveAllItems, "Acheron");
 		}
 	}
 
