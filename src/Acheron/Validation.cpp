@@ -50,8 +50,6 @@ namespace Acheron
 		exclFaction[VTarget::Either] = {
 			Acheron::GameForms::IgnoredFaction->GetFormID(),
 			0x00028347,	 // Alduin fac
-			// 0x00050920,	 // Jarl
-			// 0x0002C6C8,	 // Greybeards
 			0x00103531	// Restoration Master Qst
 		};
 		const auto exclusionpath = CONFIGPATH("Validation");
@@ -67,7 +65,6 @@ namespace Acheron
 						logger::info("Cannot exclude \'{}\'. Form does not exist or assoaicted file not loaded", id);
 						continue;
 					}
-					logger::info("Successfully excluded \'{}\'", id);
 					a_list.push_back(it);
 				}
 			};
@@ -84,7 +81,7 @@ namespace Acheron
 					const auto filepath = file.path().string();
 					if (!filepath.ends_with(".yaml") && !filepath.ends_with(".yml"))
 						continue;
-					logger::info("Reading File = {}", filepath);
+					logger::info("Reading file {}", filepath);
 					const auto root{ YAML::LoadFile(filepath) };
 					parseList(root["LocationA"], exclLocAll);
 					parseList(root["LocationT"], exclLocTp);
@@ -92,6 +89,7 @@ namespace Acheron
 					readBranch(root["Assailant"], VTarget::Assailant);
 					readBranch(root["Victim"], VTarget::Victim);
 					readBranch(root, VTarget::Either);
+					logger::info("Added exclusion data from file {}", filepath);
 				} catch (const std::exception& e) {
 					logger::error("{}", e.what());
 				}
