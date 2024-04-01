@@ -74,7 +74,7 @@ namespace Acheron
 					Defeat::RescueActor(actor, true);
 				}
 			}
-		} 
+		}
 
 		const auto data = Defeat::GetVictimData(a_player->GetFormID());
 		if (!data) {
@@ -157,9 +157,7 @@ namespace Acheron
 			return;
 		}
 		std::vector<RE::CombatTarget*> remove_these{};
-
 		group->lock.LockForWrite();
-
 		for (auto&& cmbtarget : group->targets) {
 			auto targetptr = cmbtarget.targetHandle.get();
 			if (targetptr && Defeat::IsPacified(targetptr.get())) {
@@ -167,11 +165,12 @@ namespace Acheron
 			}
 		}
 		for (auto&& remove : remove_these) {
-			if (remove->targetHandle.get().get() != nullptr && remove->attackedMember.get().get() != nullptr) {
-				group->targets.erase(remove);
-			}
+			if (!remove->attackedMember.get())
+				continue;
+			if (!remove->targetHandle.get())
+				continue;
+			group->targets.erase(remove);
 		}
-
 		group->lock.UnlockForWrite();
 	}
 
@@ -398,8 +397,8 @@ namespace Acheron
 			return true;
 
 		return a_victim->IsPlayerRef() ?
-				   protecc = Random::draw<float>(0, 99.5f) < Settings::fLethalPlayer :
-				   protecc = Random::draw<float>(0, 99.5f) < Settings::fLethalNPC;
+							 protecc = Random::draw<float>(0, 99.5f) < Settings::fLethalPlayer :
+							 protecc = Random::draw<float>(0, 99.5f) < Settings::fLethalNPC;
 	}
 
 	bool Hooks::HandleExposed(RE::Actor* a_victim)
@@ -627,4 +626,4 @@ namespace Acheron
 		}
 	}
 
-}  // namespace Hooks
+}	 // namespace Hooks
