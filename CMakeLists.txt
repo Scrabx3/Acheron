@@ -2,10 +2,17 @@ cmake_minimum_required(VERSION 3.22)
 
 set(ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
+# ---- Options ----
+option(COPY_TO_PAPYRUS "Copy finished build to Papyrus SKSE Folder" ON)
+set(PAPYRUS_ROOT "Acheron")
+set(PAPYRUS_SE "1597")
+set(PAPYRUS_AE "SKSE/Plugins")
+set(PAPYRUS_VR "14vr")
+
 # ---- Project ----
 project(
     Acheron
-    VERSION 1.4.4.4
+    VERSION 1.5.0.0
     LANGUAGES CXX
 )
 
@@ -40,6 +47,8 @@ macro(set_from_environment VARIABLE)
 endmacro()
 
 set_from_environment(VCPKG_ROOT)
+set_from_environment(MODS_FOLDER)
+
 if(DEFINED VCPKG_ROOT)
     set(CMAKE_TOOLCHAIN_FILE "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
     set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE STRING "")
@@ -48,7 +57,27 @@ else()
 endif()
 
 # ---- Dependencies ----
-add_subdirectory("./lib/CommonLibSSE" CommonLibSSE)
+if(BUILD_SKYRIMVR)
+    add_compile_definitions(SKYRIMVR)
+    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+    add_subdirectory("./lib/CommonLibVR" CommonLibSSE)
+    set(SkyrimPath ${MODS_FOLDER}/${PAPYRUS_ROOT}/${PAPYRUS_VR})
+    set(CommonLibName "CommonLibVR")
+    message("Building Skyrim VR")
+else()
+    if(BUILD_SKYRIMAE)
+        add_compile_definitions(SKYRIM_AE)
+        add_compile_definitions(SKYRIM_SUPPORT_AE)
+        set(SkyrimPath ${MODS_FOLDER}/${PAPYRUS_ROOT}/${PAPYRUS_AE})
+        message("Building Skyrim 1.6")
+    else()
+        set(SkyrimPath ${MODS_FOLDER}/${PAPYRUS_ROOT}/${PAPYRUS_SE})
+        message("Building Skyrim 1.5")
+    endif()
+
+    set(CommonLibName "CommonLibSSE")
+    add_subdirectory("./lib/CommonLibSSE" CommonLibSSE)
+endif()
 
 find_package(spdlog REQUIRED CONFIG)
 find_package(yaml-cpp REQUIRED)
@@ -135,3 +164,20 @@ target_precompile_headers(
     PRIVATE
     "src/PCH.h"
 )
+
+# ---- Post build ----
+if(COPY_TO_PAPYRUS)
+    if(DEFINED SkyrimPath)
+        add_custom_command(
+            TARGET ${PROJECT_NAME}
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}> ${SkyrimPath}
+            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_PDB_FILE:${PROJECT_NAME}> ${SkyrimPath}
+        )
+    else()
+        message(
+            WARNING
+            "Variable ${SkyrimPath} is not defined. Skipping post-build copy command."
+        )
+    endif()
+endif()
