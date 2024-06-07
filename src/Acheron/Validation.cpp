@@ -131,28 +131,35 @@ namespace Acheron
 
 	bool Validation::ValidatePair(RE::Actor* a_victim, RE::Actor* a_aggressor)
 	{
-		if (a_victim->IsDead() || a_aggressor->IsDead())
-			return false;
-		if (a_victim->IsInKillMove() || a_aggressor->IsInKillMove())
+		if (a_victim->IsDead() || a_victim->IsInKillMove())
 			return false;
 		if (a_victim->IsPlayerRef()) {
 			if (!Settings::bPlayerDefeat) {
 				return false;
 			}
-		} else {
+		} else if (a_aggressor) {
 			if (!UsesHunterPride(a_aggressor) && (!Settings::bNPCDefeat || !a_victim->IsHostileToActor(a_aggressor)))
 				return false;
 			if (auto ref = a_victim->GetObjectReference(); ref && ref->As<RE::BGSKeywordForm>()->HasKeywordID(0xD205E))	// ActorTypeGhost
 				return false;
 		}
-		if (!Settings::bCreatureDefeat && !IsNPC(a_aggressor))
+		if (a_aggressor) {
+			if (a_aggressor->IsDead() || a_aggressor->IsInKillMove())
+				return false;
+			if (!Settings::bCreatureDefeat && !IsNPC(a_aggressor))
+				return false;
+			if (!ValidateActor(a_aggressor))
+				return false;
+			if (!CheckAssailantID(a_aggressor->formID))
+				return false;
+			if (!CheckExclusion(VTarget::Assailant, a_aggressor))
+				return false;
+		}
+		if (!ValidateActor(a_victim))
 			return false;
-
-		if (!ValidateActor(a_victim) || !ValidateActor(a_aggressor))
+		if (!CheckVictimID(a_victim->formID))
 			return false;
-		if (!CheckVictimID(a_victim->formID) || !CheckAssailantID(a_aggressor->formID))
-			return false;
-		return CheckExclusion(VTarget::Victim, a_victim) && CheckExclusion(VTarget::Assailant, a_aggressor);
+		return CheckExclusion(VTarget::Victim, a_victim);
 	}
 
 	bool Validation::AllowTeleport()
@@ -161,9 +168,8 @@ namespace Acheron
 		if (player->GetCurrentScene() != nullptr) {
 			return false;
 		}
-
 		if (const auto loc = player->GetCurrentLocation()) {
-			if (std::find(exclLocTp.begin(), exclLocTp.end(), loc->formID) != exclLocTp.end())
+			if (std::ranges::contains(exclLocTp, loc->formID))
 				return false;
 		}
 		return true;
