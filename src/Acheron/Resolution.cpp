@@ -67,19 +67,26 @@ namespace Acheron
 			throw std::exception(fmt::format("Invalid version: {}", version).c_str());
 		}
 		// Flags
-		const auto setflag = [this, &root](const char* a_setting, Flags a_flag) {
-			if (!root[a_setting].IsDefined())
-				return;
+		const auto setflag = [this, &root](Flag a_flag) {
+			std::string key{ magic_enum::enum_name(a_flag) };
+			if (!root[key].IsDefined())
+				return false;
 
-			if (root[a_setting].as<bool>()) {
+			auto ret = root[key].as<bool>();
+			if (ret) {
 				flags.set(a_flag);
 			} else {
 				flags.reset(a_flag);
 			}
+			return ret;
 		};
-		setflag("Teleport", Flags::Teleport);
-		setflag("InCombat", Flags::InCombat);
-		setflag("Hidden", Flags::Hidden);
+		if (setflag(Flag::StartTeleport)) {
+			flags.set(Flag::Teleport);
+		} else {
+			setflag(Flag::Teleport);
+		}
+		setflag(Flag::InCombat);
+		setflag(Flag::Hidden);
 		// Consequences
 		if (const auto cons = root["Conditions"]; cons.IsDefined()) {
 			using ConditionType = CONDITION_DATA::ConditionType;
@@ -278,10 +285,10 @@ namespace Acheron
 	void Resolution::Initialize()
 	{
 		auto& h = Events[Type::Hostile].emplace_back(GameForms::DefaultCommon);
-		h.flags.set(EventData::Flags::Hidden);
+		h.flags.set(EventData::Flag::Hidden, EventData::Flag::Teleport, EventData::Flag::StartTeleport);
 
 		auto& g = Events[Type::Guard].emplace_back(GameForms::DefaultGuard);
-		g.flags.set(EventData::Flags::Hidden);
+		g.flags.set(EventData::Flag::Hidden, EventData::Flag::Teleport, EventData::Flag::StartTeleport);
 
 		try {
 			const auto wpath = CONFIGPATH("Consequences\\Weights.yaml");
@@ -340,18 +347,49 @@ namespace Acheron
 		logger::info("Saved resolution user data");
 	}
 
-	bool Resolution::SelectQuest(Type type, RE::Actor* a_victim, const std::vector<RE::Actor*>& a_victoires, bool a_incombat)
+	bool Resolution::SelectQuest(Type type, RE::Actor* a_victim, const std::vector<RE::Actor*>& a_victoires, bool a_incombat, bool a_doteleport)
 	{
-		using TWeight = int;
-		logger::info("Looking up quest of type {} for {:X} and {} aggressors. During Combat? {}", type, a_victim->formID, a_victoires.size(), a_incombat);
+		logger::info("Looking up quest of type {} for {:X} and {} aggressors. Combat? {} / Teleport? {}", type, a_victim->formID, a_victoires.size(), a_incombat, a_doteleport);
+		const bool tp = Validation::AllowTeleport();
+		if (!tp && a_doteleport) {
+			logger::info("Teleport event requested but teleportation is disabled");
+			return false;
+		}
+		stl::enumeration<EventData::Flag> argFlags{};
+		if (a_incombat)
+			argFlags.set(EventData::Flag::InCombat);
+		if (a_doteleport)
+			argFlags.set(EventData::Flag::StartTeleport);
+		if (type == Type::Any) {
+			constexpr auto ctypes = []() {
+				std::array<Type, Total> ret{};
+				for (size_t i = 0; i < Type::Total; i++) {
+					ret[i] = Type(i);
+				}
+				return ret;
+			}();
+			auto types = ctypes;
+			Random::shuffle(types);
+			for (auto&& t : types) {
+				if (SelectQuestImpl(t, a_victim, a_victoires, argFlags.get())) {
+					return true;
+				}
+			}
+			return false;
+		}
+		return SelectQuestImpl(type, a_victim, a_victoires, argFlags.get());
+	}
+
+	bool Resolution::SelectQuestImpl(Type type, RE::Actor* a_victim, const std::vector<RE::Actor*>& a_victoires, const EventData::Flag& a_flags)
+	{
+		assert(type != Type::Any && type != Type::Total);
 		if (Events[type].empty()) {
 			logger::info("No custom events for type {}", type);
 			return false;
 		}
-		const bool tp = Validation::AllowTeleport();
-		std::vector<std::pair<RE::TESQuest*, TWeight>> ret[EventData::Priority::p_Total];
+		std::vector<std::pair<RE::TESQuest*, int>> ret[EventData::Priority::p_Total];
 		for (auto& e : Events[type]) {
-			if (e.weight <= 0 || a_incombat && e.flags.none(EventData::Flags::InCombat) || !tp && e.flags.any(EventData::Flags::Teleport))
+			if (e.weight <= 0 || !e.flags.all(a_flags))
 				continue;
 			if (!e.CheckConditions(a_victoires, a_victim))
 				continue;
@@ -361,7 +399,7 @@ namespace Acheron
 			auto& it = ret[i];
 			while (!it.empty()) {
 				const auto weights = std::ranges::fold_left(it | std::ranges::views::values, 0, std::plus<>());
-				auto where = Random::draw<TWeight>(1, weights);
+				auto where = Random::draw<int>(1, weights);
 				const auto there = std::find_if(it.begin(), it.end(), [where](std::pair<RE::TESQuest*, int32_t>& pair) mutable {
 					where -= pair.second;
 					return where <= 0;
@@ -382,10 +420,10 @@ namespace Acheron
 	{
 		std::vector<std::pair<std::string, uint8_t>> ret{};
 		for (auto&& e : Events[a_type]) {
-			if (e.flags.any(EventData::Flags::Hidden))
+			if (e.flags.any(EventData::Flag::Hidden))
 				continue;
 
-			const auto name = e.flags.any(EventData::Flags::InCombat) ? fmt::format("{}(*)", e.name) : e.name;
+			const auto name = e.flags.any(EventData::Flag::InCombat) ? fmt::format("{}(*)", e.name) : e.name;
 			ret.emplace_back(name, e.weight);
 		}
 		return ret;

@@ -51,11 +51,12 @@ namespace Acheron
 			Total
 		};
 
-		enum class Flags : uint8_t
+		enum class Flag : uint8_t
 		{
-			Teleport = 1 << 0,	// Does the event teleport the victim away
-			InCombat = 1 << 1,	// Can the event start mid combat
-			Hidden = 1 << 2,		// Is the event hidden from the player, i.e. no settings displayed
+			Teleport = 1 << 0,			 // Does the event teleport the victim away at any point in the event
+			InCombat = 1 << 1,			 // Can the event start mid combat
+			Hidden = 1 << 2,				 // Is the event hidden from the player, i.e. no settings displayed
+			StartTeleport = 1 << 3,	 // Does the event start with a teleport
 		};
 
 		enum Priority : uint8_t
@@ -89,7 +90,7 @@ namespace Acheron
 		Priority priority{ Priority::Default };
 		uint8_t weight{ 50 };
 
-		stl::enumeration<Flags, uint8_t> flags{ Flags::Teleport };
+		stl::enumeration<Flag, uint8_t> flags{ Flag::Teleport };
 		std::vector<CONDITION_DATA> conditions[ConditionTarget::Total];
 	};
 
@@ -104,7 +105,8 @@ namespace Acheron
 			Guard = 3,			// When the player lost against a guard
 			NPC = 4,				// When the player was not involved in the encounter
 
-			Total
+			Total,
+			Any
 		};
 
 	public:
@@ -116,8 +118,9 @@ namespace Acheron
 		/// @param a_victim The victim to look up an event for
 		/// @param a_victoires The actors which defeated the victim
 		/// @param a_incombat If combat is still ongoing
+		/// @param a_doteleport Is teleportation mandatory
 		/// @return If a quest managed to be selected & started
-		static bool SelectQuest(Type type, RE::Actor* a_victim, const std::vector<RE::Actor*>& a_victoires, bool a_incombat);
+		static bool SelectQuest(Type type, RE::Actor* a_victim, const std::vector<RE::Actor*>& a_victoires, bool a_incombat, bool a_doteleport);
 
 		/// @brief Retrieve all existing current registered events of a given type
 		/// @param a_type The event type to retrieve events for
@@ -131,6 +134,7 @@ namespace Acheron
 		static void SetEventWeight(const std::string& a_name, Type a_type, uint8_t a_weight);
 
 	private:
+		static bool SelectQuestImpl(Type type, RE::Actor* a_victim, const std::vector<RE::Actor*>& a_victoires, const EventData::Flag& a_flags);
 		static inline std::vector<EventData> Events[Type::Total];
 	};
 }
