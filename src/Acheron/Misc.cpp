@@ -91,7 +91,7 @@ namespace Acheron
 	bool UsesHunterPride(const RE::Actor* a_actor)
 	{
 		const auto target = a_actor->IsCommandedActor() ? a_actor->GetCommandingActor().get() : a_actor;
-		return target->IsPlayerRef() || Settings::bHunterPrideFollower && target->IsPlayerTeammate();
+		return target && (target->IsPlayerRef() || Settings::bHunterPrideFollower && target->IsPlayerTeammate());
 	}
 
 	bool IsNPC(const RE::Actor* a_actor)
