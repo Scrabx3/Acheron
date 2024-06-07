@@ -24,6 +24,7 @@ namespace Acheron
 		static void MagicHit(uint64_t* unk1, RE::ActiveEffect& effect, uint64_t* unk3, uint64_t* unk4, uint64_t* unk5);
 		static bool DoesMagicHitApply(RE::MagicTarget* a_target, RE::MagicTarget::AddTargetData* a_data);
 		static bool ExplosionHit(RE::Explosion& explosion, float* flt, RE::Actor* actor);
+		static float FallAndPhysicsDamage(RE::Actor* a_this, float a_fallDistance, float a_defaultMult);
 		static uint8_t* DoDetect(RE::Actor* viewer, RE::Actor* target, int32_t& detectval, uint8_t& unk04, uint8_t& unk05, uint32_t& unk06, RE::NiPoint3& pos, float& unk08, float& unk09, float& unk10);
 
 		// Hit Processing
@@ -36,7 +37,6 @@ namespace Acheron
 		static void RemoveDamagingSpells(RE::Actor* subject);
 		static void CalcDamageOverTime(RE::Actor* a_target);
 		static void AdjustByDifficultyMult(float& damage, const bool playerPOV);
-		static RE::Actor* GetNearValidAggressor(RE::Actor* a_victim);
 		static void ValidateStrip(RE::Actor* target);
 
 		static inline REL::Relocation<decltype(CompileAndRun)> _CompileAndRun;
@@ -49,6 +49,36 @@ namespace Acheron
 		static inline REL::Relocation<decltype(DoesMagicHitApply)> _DoesMagicHitApply;
 		static inline REL::Relocation<decltype(ExplosionHit)> _ExplosionHit;
 		static inline REL::Relocation<decltype(DoDetect)> _DoDetect;
+		static inline REL::Relocation<decltype(FallAndPhysicsDamage)> _FallAndPhysicsDamage;
+
+
+		
+	// namespace FallLongDistance
+	// {
+	// 	struct CalcDoDamage
+	// 	{
+	// 		static float thunk(RE::Actor* a_this, float a_fallDistance, float a_defaultMult)
+	// 		{
+	// 			const auto fallDamage = func(a_this, a_fallDistance, a_defaultMult);
+	// 			if (fallDamage > 0.0f) {
+	// 				GameEventHolder::GetSingleton()->actorFallLongDistance.QueueEvent(a_this, a_this, a_fallDistance, fallDamage);
+	// 			}
+	// 			return fallDamage;
+	// 		}
+	// 		static inline REL::Relocation<decltype(thunk)> func;
+	// 	};
+
+	// 	void Install()
+	// 	{
+	// 		REL::Relocation<std::uintptr_t> take_ragdoll_damage{ RELOCATION_ID(36346, 37336), 0x35 };
+	// 		stl::write_thunk_call<CalcDoDamage>(take_ragdoll_damage.address());
+
+	// 		REL::Relocation<std::uintptr_t> process_movefinish_event{ RELOCATION_ID(36973, 37998), OFFSET(0xAE, 0xAB) };
+	// 		stl::write_thunk_call<CalcDoDamage>(process_movefinish_event.address());
+
+	// 		logger::info("Hooked Fall Damage"sv);
+	// 	}
+	// }
 	};
 
 }	 // namespace Hooks

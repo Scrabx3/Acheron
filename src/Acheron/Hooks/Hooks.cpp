@@ -33,6 +33,12 @@ namespace Acheron
 		REL::Relocation<std::uintptr_t> console{ RELID(52065, 52952), OFFSET(0xE2, 0x52) };
 		_CompileAndRun = trampoline.write_call<5>(console.address(), CompileAndRun);
 		// ==================================================
+		REL::Relocation<std::uintptr_t> ragdoll_dmg{ RELOCATION_ID(36346, 37336), 0x35 };
+		_FallAndPhysicsDamage = trampoline.write_call<5>(ragdoll_dmg.address(), FallAndPhysicsDamage);
+		// ==================================================
+		REL::Relocation<std::uintptr_t> movefinish{ RELOCATION_ID(36973, 37998), OFFSET(0xAE, 0xAB) };
+		_FallAndPhysicsDamage = trampoline.write_call<5>(movefinish.address(), FallAndPhysicsDamage);
+		// ==================================================
 		REL::Relocation<std::uintptr_t> plu{ RE::PlayerCharacter::VTABLE[0] };
 		_PlUpdate = plu.write_vfunc(0xAD, UpdatePlayer);
 		// ==================================================
@@ -62,7 +68,6 @@ namespace Acheron
 	{
 		_PlUpdate(a_player, a_delta);
 
-		// this is somewhat expensive, so only do it when the player goes out of combat
 		static bool __combat = a_player->playerFlags.isInCombat;
 		if (__combat != a_player->playerFlags.isInCombat) {
 			__combat = a_player->playerFlags.isInCombat;
@@ -134,6 +139,9 @@ namespace Acheron
 	void Hooks::UpdateCharacter(RE::Character* a_this, float a_delta)
 	{
 		_UpdateCharacter(a_this, a_delta);
+		if (Defeat::IsPacified(a_this) && a_this->IsInCombat()) {
+			a_this->StopCombat();
+		}
 
 		if (a_this->IsCommandedActor() || !IsNPC(a_this) || !Validation::CanProcessDamage())
 			return;
@@ -146,12 +154,6 @@ namespace Acheron
 	void Hooks::UpdateCombatControllerSettings(RE::Character* a_this)
 	{
 		_UpdateCombatControllerSettings(a_this);
-		if (Defeat::IsPacified(a_this)) {
-			if (a_this->IsInCombat()) {
-				a_this->StopCombat();
-			}
-			return;
-		}
 		auto group = a_this->GetCombatGroup();
 		if (!group) {
 			return;
@@ -193,16 +195,16 @@ namespace Acheron
 				}
 			}
 			if (const float change = GetExpectedHealthModification(effect); change != 0) {
-				inc_damage += change / 20;	// Only consider damage the spell would do within the next 50ms
+				inc_damage += change / 20;	// damage value is per second
 			}
 		}
 		if (inc_damage < 0 && a_target->GetActorValue(RE::ActorValue::kHealth) <= fabs(inc_damage)) {
-			auto aggressor = GetNearValidAggressor(a_target);
-			if (!aggressor || !Validation::ValidatePair(a_target, aggressor))
+			auto aggressor = Processing::AggressorInfo(nullptr, a_target);
+			if (!Validation::ValidatePair(a_target, aggressor.actor))
 				return;
-			if (GetProcessType(aggressor, true) != ProcessType::Lethal)
+			if (GetProcessType(aggressor.actor, true) != ProcessType::Lethal)
 				return;
-			if (!HandleLethal(a_target, aggressor))
+			if (!HandleLethal(a_target, aggressor.actor))
 				return;
 			if (!Processing::RegisterDefeat(a_target, aggressor))
 				return;
@@ -212,57 +214,57 @@ namespace Acheron
 
 	void Hooks::WeaponHit(RE::Actor* a_target, RE::HitData& a_hitData)
 	{
-		const auto aggressorPtr = a_hitData.aggressor.get();
-		if (a_target && aggressorPtr && aggressorPtr.get() != a_target && !a_target->IsCommandedActor() && IsNPC(a_target)) {
-			const auto aggressor = aggressorPtr.get();
-			if (Defeat::IsDamageImmune(a_target))
-				return;
-			if (Validation::CanProcessDamage() && Validation::ValidatePair(a_target, aggressor)) {
-				const float hp = a_target->GetActorValue(RE::ActorValue::kHealth);
-				auto dmg = a_hitData.totalDamage + fabs(GetIncomingEffectDamage(a_target));
-				AdjustByDifficultyMult(dmg, aggressor->IsPlayerRef());
-				bool negate;
-				switch (GetProcessType(aggressor, hp <= dmg)) {
-				case ProcessType::Lethal:
-					negate = HandleLethal(a_target, aggressor);
-					break;
-				case ProcessType::Any:
-					negate = [&]() {
-						if (a_hitData.stagger == 0 || !Settings::bTraumaEnabled)
-							return false;
-						// f(x,y) = (x^2 * (1 + d * (1 - y))) / 64; with x in (-inf, inf), y in [0; 1], d in [0; inf)
-						const auto y = Settings::bTraumaHealth ? GetAVPercent(a_target, RE::ActorValue::kHealth) : 0.7;
-						const auto f = (powf(a_hitData.stagger, 2) * (1 + Settings::fTraumaMult * (1 - y))) / 64;
-						const auto random = Random::draw<float>(0.1f, 0.999f);
-						if (random < f)
-							return true;
-						if (Settings::fTraumeBackAttack <= 1)
-							return false;
-						const auto head = a_target->GetNodeByName("NPC Head [Head]");
-						if (head) {
-							const auto& matrix = head->world.rotate;
-							RE::NiPoint2 vecTarget{ matrix.entry[0][1], matrix.entry[0][0] };
-							RE::NiPoint2 vecRelative{ aggressor->GetPositionX() - a_hitData.hitPosition.x, aggressor->GetPositionY() - a_hitData.hitPosition.y };
-							vecRelative.Unitize();
-							const auto res = vecTarget.Dot(vecRelative);
-							if (res < -0.92f) {	 // 157°
-								return random < f * Settings::fTraumeBackAttack;
-							}
-						}
+		if (!a_target || a_target->IsCommandedActor() || !IsNPC(a_target))
+			return _WeaponHit(a_target, a_hitData);
+		if (Defeat::IsDamageImmune(a_target))
+			return;
+
+		const auto aggressor = a_hitData.aggressor.get().get();
+		if (aggressor && Validation::CanProcessDamage() && Validation::ValidatePair(a_target, aggressor)) {
+			const float hp = a_target->GetActorValue(RE::ActorValue::kHealth);
+			auto dmg = a_hitData.totalDamage + fabs(GetIncomingEffectDamage(a_target));
+			AdjustByDifficultyMult(dmg, aggressor->IsPlayerRef());
+			bool negate;
+			switch (GetProcessType(aggressor, hp <= dmg)) {
+			case ProcessType::Lethal:
+				negate = HandleLethal(a_target, aggressor);
+				break;
+			case ProcessType::Any:
+				negate = [&]() {
+					if (a_hitData.stagger == 0 || !Settings::bTraumaEnabled)
 						return false;
-					}() || HandleExposed(a_target);
-					break;
-				default:
-					negate = false;
-				}
-				if (negate) {
-					if (Processing::RegisterDefeat(a_target, aggressor)) {
-						RemoveDamagingSpells(a_target);
-						return;
+					// f(x,y) = (x^2 * (1 + d * (1 - y))) / 64; with x in (-inf, inf), y in [0; 1], d in [0; inf)
+					const auto y = Settings::bTraumaHealth ? GetAVPercent(a_target, RE::ActorValue::kHealth) : 0.7;
+					const auto f = (powf(a_hitData.stagger, 2) * (1 + Settings::fTraumaMult * (1 - y))) / 64;
+					const auto random = Random::draw<float>(0.1f, 0.999f);
+					if (random < f)
+						return true;
+					if (Settings::fTraumeBackAttack <= 1)
+						return false;
+					const auto head = a_target->GetNodeByName("NPC Head [Head]");
+					if (head) {
+						const auto& matrix = head->world.rotate;
+						RE::NiPoint2 vecTarget{ matrix.entry[0][1], matrix.entry[0][0] };
+						RE::NiPoint2 vecRelative{ aggressor->GetPositionX() - a_hitData.hitPosition.x, aggressor->GetPositionY() - a_hitData.hitPosition.y };
+						vecRelative.Unitize();
+						const auto res = vecTarget.Dot(vecRelative);
+						if (res < -0.92f) {	 // 157°
+							return random < f * Settings::fTraumeBackAttack;
+						}
 					}
-				} else if (a_hitData.flags.none(RE::HitData::Flag::kBlocked, RE::HitData::Flag::kBlockWithWeapon)) {
-					ValidateStrip(a_target);
+					return false;
+				}() || HandleExposed(a_target);
+				break;
+			default:
+				negate = false;
+			}
+			if (negate) {
+				if (Processing::RegisterDefeat(a_target, { aggressor, a_target })) {
+					RemoveDamagingSpells(a_target);
+					return;
 				}
+			} else if (a_hitData.flags.none(RE::HitData::Flag::kBlocked, RE::HitData::Flag::kBlockWithWeapon)) {
+				ValidateStrip(a_target);
 			}
 		}
 		return _WeaponHit(a_target, a_hitData);
@@ -294,46 +296,48 @@ namespace Acheron
 			if (Defeat::IsDamageImmune(target))
 				return;
 			if (Validation::CanProcessDamage()) {
-				const auto caster = effect.caster.get();
-				if (caster && caster.get() != target && Validation::ValidatePair(target, caster.get())) {
-					static std::mutex cache_m{};
-					static std::vector<RE::FormID> cache{};
-					cache_m.lock();
-					if (std::find(cache.begin(), cache.end(), target->formID) == cache.end()) {
-						const auto id = target->formID;
-						cache.push_back(id);
-						cache_m.unlock();
-						std::thread([id]() {
-							std::this_thread::sleep_for(800ms);
-							cache_m.lock();
-							std::erase(cache, id);
-							cache_m.unlock();
-						}).detach();
+				auto caster = Processing::AggressorInfo(effect.caster.get().get(), target);
+				if (!Validation::ValidatePair(target, caster.actor))
+					break;
 
-						const float health = target->GetActorValue(RE::ActorValue::kHealth);
-						float dmg = base->data.secondaryAV == RE::ActorValue::kHealth ? effect.magnitude * base->data.secondAVWeight : effect.magnitude;
-						dmg += GetIncomingEffectDamage(target);	 // + GetTaperDamage(effect.magnitude, data->data);
-						AdjustByDifficultyMult(dmg, caster->IsPlayerRef());
-						bool negate;
-						switch (GetProcessType(caster.get(), health <= fabs(dmg) + 2)) {
-						case ProcessType::Lethal:
-							negate = HandleLethal(target, caster.get());
-							break;
-						case ProcessType::Any:
-							negate = HandleExposed(target);
-							break;
-						default:
-							negate = false;
-						}
-						if (negate && Processing::RegisterDefeat(target, caster.get())) {
-							RemoveDamagingSpells(target);
-							return;
-						} else if (effect.spell->GetSpellType() != RE::MagicSystem::SpellType::kEnchantment) {
-							ValidateStrip(target);
-						}
-					} else {
+				static std::mutex cache_m{};
+				static std::deque<RE::FormID> cache{};
+				cache_m.lock();
+				if (std::ranges::contains(cache, target->formID)) {
+					const auto id = target->formID;
+					cache.push_back(id);
+					cache_m.unlock();
+					std::thread([id]() {
+						std::this_thread::sleep_for(800ms);
+						cache_m.lock();
+						cache.pop_front();
 						cache_m.unlock();
+					}).detach();
+
+					const float health = target->GetActorValue(RE::ActorValue::kHealth);
+					float dmg = base->data.secondaryAV == RE::ActorValue::kHealth ? effect.magnitude * base->data.secondAVWeight : effect.magnitude;
+					dmg += GetIncomingEffectDamage(target);	 // + GetTaperDamage(effect.magnitude, data->data);
+					AdjustByDifficultyMult(dmg, caster && caster->IsPlayerRef());
+					bool negate;
+					switch (GetProcessType(caster.actor, health <= fabs(dmg) + 2)) {
+					case ProcessType::Lethal:
+						negate = HandleLethal(target, caster.actor);
+						break;
+					case ProcessType::Any:
+						negate = HandleExposed(target);
+						break;
+					default:
+						negate = false;
+						break;
 					}
+					if (negate && Processing::RegisterDefeat(target, caster)) {
+						RemoveDamagingSpells(target);
+						return;
+					} else if (effect.spell->GetSpellType() != RE::MagicSystem::SpellType::kEnchantment) {
+						ValidateStrip(target);
+					}
+				} else {
+					cache_m.unlock();
 				}
 			}
 			break;
@@ -362,10 +366,35 @@ namespace Acheron
 	// return false if hit should not be processed
 	bool Hooks::ExplosionHit(RE::Explosion& a_explosion, float* a_flt, RE::Actor* a_actor)
 	{
-		if (a_actor && Defeat::IsDamageImmune(a_actor))
+		auto ret = _ExplosionHit(a_explosion, a_flt, a_actor);
+		if (!ret || !a_actor)
+			return ret;
+		if (Defeat::IsDamageImmune(a_actor))
 			return false;
 
-		return _ExplosionHit(a_explosion, a_flt, a_actor);
+		const float hp = a_actor->GetActorValue(RE::ActorValue::kHealth);
+		auto effectdmg = fabs(GetIncomingEffectDamage(a_actor));
+		AdjustByDifficultyMult(effectdmg, false);
+		if (a_explosion.damage + effectdmg < hp) {
+			return ret;
+		}
+		auto owner = a_explosion.GetActorOwner();
+		auto ref = owner ? owner->AsReference() : nullptr;
+		auto aggressor = Processing::AggressorInfo(ref ? ref->As<RE::Actor>() : nullptr, a_actor);
+		return Processing::RegisterDefeat(a_actor, aggressor) ? false : ret;
+	}
+
+	float Hooks::FallAndPhysicsDamage(RE::Actor* a_this, float a_fallDistance, float a_defaultMult){
+		float dmg = _FallAndPhysicsDamage(a_this, a_fallDistance, a_defaultMult);
+		if (Defeat::IsDamageImmune(a_this)) {
+			return dmg;
+		}
+		const float hp = a_this->GetActorValue(RE::ActorValue::kHealth);
+		if (dmg < hp) {
+			return dmg;
+		}
+		auto aggressor = Processing::AggressorInfo(nullptr, a_this);
+		return Processing::RegisterDefeat(a_this, aggressor) ? 0.0f : dmg;
 	}
 
 	uint8_t* Hooks::DoDetect(RE::Actor* viewer, RE::Actor* target, int32_t& detectval, uint8_t& unk04, uint8_t& unk05, uint32_t& unk06, RE::NiPoint3& pos, float& unk08, float& unk09, float& unk10)
@@ -379,7 +408,7 @@ namespace Acheron
 
 	Hooks::ProcessType Hooks::GetProcessType(RE::Actor* a_aggressor, bool a_lethal)
 	{
-		if (UsesHunterPride(a_aggressor)) {
+		if (a_aggressor && UsesHunterPride(a_aggressor)) {
 			auto player = RE::PlayerCharacter::GetSingleton();
 			if (!a_lethal || !IsHunter(player)) {
 				return ProcessType::None;
@@ -393,7 +422,7 @@ namespace Acheron
 	{
 		using Flag = RE::Actor::BOOL_FLAGS;
 		bool protecc;
-		if (Settings::bLethalEssential && (a_victim->boolFlags.all(Flag::kEssential) || !a_aggressor->IsPlayerRef() && a_victim->boolFlags.all(Flag::kProtected)))
+		if (Settings::bLethalEssential && (a_victim->boolFlags.all(Flag::kEssential) || !(a_aggressor && a_aggressor->IsPlayerRef()) && a_victim->boolFlags.all(Flag::kProtected)))
 			return true;
 
 		return a_victim->IsPlayerRef() ?
@@ -536,46 +565,6 @@ namespace Acheron
 
 		const auto mult = smult->GetFloat();
 		damage *= mult;
-	}
-
-	RE::Actor* Hooks::GetNearValidAggressor(RE::Actor* a_victim)
-	{
-		const auto valid = [&](RE::Actor* subject) {
-			return subject->IsHostileToActor(a_victim) && subject->IsInCombat();
-		};
-		std::vector<RE::Actor*> valids{};
-		if (const auto player = RE::PlayerCharacter::GetSingleton(); valid(player) && IsHunter(player))
-			valids.push_back(player);
-
-		const auto& processLists = RE::ProcessLists::GetSingleton();
-		for (auto& pHandle : processLists->highActorHandles) {
-			auto potential = pHandle.get().get();
-			if (!potential || potential->IsDead() || Defeat::IsDamageImmune(potential) || !valid(potential))
-				continue;
-
-			if (const auto group = potential->GetCombatGroup(); group) {
-				for (auto& e : group->targets) {
-					if (e.targetHandle.get().get() == a_victim) {
-						valids.push_back(potential);
-						break;
-					}
-				}
-			}
-		}
-		if (valids.empty()) {
-			return nullptr;
-		}
-		const auto targetposition = a_victim->GetPosition();
-		auto distance = valids[0]->GetPosition().GetDistance(targetposition);
-		size_t where = 0;
-		for (size_t i = 1; i < valids.size(); i++) {
-			const auto d = valids[i]->GetPosition().GetDistance(targetposition);
-			if (d < distance) {
-				distance = d;
-				where = i;
-			}
-		}
-		return distance < 4096.0f ? valids[where] : nullptr;
 	}
 
 	void Hooks::ValidateStrip(RE::Actor* a_victim)
