@@ -60,7 +60,7 @@ namespace Acheron
 
 	bool Processing::RegisterDefeat(RE::Actor* a_victim, const AggressorInfo& a_aggressor)
 	{
-		logger::info("Aggressor {} -> Register Defeat for Victim {}", a_aggressor ? a_aggressor->GetFormID() : 0, a_victim->GetFormID());
+		logger::info("Aggressor {:X} -> Register Defeat for Victim {:X}", a_aggressor ? a_aggressor->GetFormID() : 0, a_victim->GetFormID());
 		assert(a_victim);
 		const auto& process = a_victim->currentProcess;
 		const auto middlehigh = process ? process->middleHigh : nullptr;
@@ -83,7 +83,7 @@ namespace Acheron
 		}
 
 		const auto player = RE::PlayerCharacter::GetSingleton();
-		switch (GetDefeatType(a_aggressor.actor)) {
+		switch (GetDefeatType(a_aggressor.actor, a_victim)) {
 		case DefeatResult::Defeat:
 			Defeat::DefeatActor(a_victim);
 			if (Settings::ConsequenceEnabled && a_victim->IsPlayerRef()) {
@@ -121,10 +121,16 @@ namespace Acheron
 		default:
 			return false;
 		}
+		if (Settings::bFolWithPlDefeat && a_victim->IsPlayerRef()) {
+			const auto flist = GetFollowers();
+			for (auto&& f : flist) {
+				Defeat::DefeatActor(f);
+			}
+		}
 		return true;
 	}
 
-	Processing::DefeatResult Processing::GetDefeatType(RE::Actor* a_aggressor)
+	Processing::DefeatResult Processing::GetDefeatType(RE::Actor* a_aggressor, RE::Actor* a_victim)
 	{
 		if (!a_aggressor)
 			return DefeatResult::Resolution;
@@ -137,8 +143,12 @@ namespace Acheron
 			logger::warn("Aggressor = {} has no Combat Group, Abandon", a_aggressor->GetFormID());
 			return DefeatResult::Cancel;
 		}
-		const auto validtarget = [](const RE::ActorPtr ptr) -> bool {
-			return ptr && !ptr->IsCommandedActor() && ptr->Is3DLoaded() && !ptr->IsDead() && !Defeat::IsDamageImmune(ptr.get());
+		const auto validtarget = [&](const RE::ActorPtr ptr) -> bool {
+			if (!ptr)
+				return false;
+			if (a_victim->IsPlayerRef() && Settings::bFolWithPlDefeat)
+				return false;
+			return !ptr->IsCommandedActor() && ptr->Is3DLoaded() && !ptr->IsDead() && !Defeat::IsDamageImmune(ptr.get());
 		};
 		std::set<RE::FormID> targets{};	 // avoid duplicates
 		for (auto& e : agrzone->targets) {
@@ -156,7 +166,7 @@ namespace Acheron
 					targets.insert(target->formID);
 			}
 		}
-		logger::info("Aggressor {} has {} targets", a_aggressor->GetFormID(), targets.size());
+		logger::info("Aggressor {:X} has {} targets", a_aggressor->GetFormID(), targets.size());
 		switch (targets.size()) {
 		case 0:
 			return DefeatResult::Cancel;

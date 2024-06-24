@@ -25,6 +25,7 @@ struct Settings
 	// Knockdown - General
 	static inline float fMidCombatBlackout{ 10.0f };	// Chance to blackout upon defeat (player only)
 	static inline bool bPlayerDefeat{ true };					// if the player may be defeated
+	static inline bool bFolWithPlDefeat{ false };			// If followers get knocked down alongside player
 	static inline bool bNPCDefeat{ true };						// if NPC may be defeated
 
 	// Passive Recovery
@@ -109,6 +110,7 @@ struct Settings
 		ENTRY(fKdHealthThresh),
 		ENTRY(iKdFallbackTimer),
 		ENTRY(iFollowerRescue),
-		ENTRY(bNPCRescueReload)
+		ENTRY(bNPCRescueReload),
+		ENTRY(bFolWithPlDefeat)
 	};
 };

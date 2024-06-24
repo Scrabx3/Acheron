@@ -34,7 +34,7 @@ public:
 
 	private:
 		static RE::Actor* GetNearValidAggressor(RE::Actor* a_victim);
-		static DefeatResult GetDefeatType(RE::Actor* aggressor);
+		static DefeatResult GetDefeatType(RE::Actor* a_aggressor, RE::Actor* a_victim);
 		static bool CreateResolution(RE::Actor* a_victim, const AggressorInfo& a_victoire, bool a_incombat);
 	};	// class Zone
 
