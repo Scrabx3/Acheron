@@ -2,6 +2,7 @@
 
 #include "Acheron/Animation/Animation.h"
 #include "Acheron/Validation.h"
+#include "Acheron/Defeat.h"
 
 namespace Acheron
 {
@@ -361,14 +362,17 @@ namespace Acheron
 		if (a_doteleport)
 			argFlags.set(EventData::Flag::StartTeleport);
 		if (type == Type::Any) {
-			constexpr auto ctypes = []() {
-				std::array<Type, Total> ret{};
-				for (size_t i = 0; i < Type::Total; i++) {
-					ret[i] = Type(i);
+			if (!a_victim->IsPlayerRef()) {
+				return SelectQuestImpl(Type::NPC, a_victim, a_victoires, argFlags.get());
+			}
+			auto types = std::vector{ Type::Civilian, Type::Hostile };
+			auto fl = GetFollowers();
+			for (auto&& f : fl) {
+				if (!Defeat::IsDamageImmune(f)) {
+					types.push_back(Type::Follower);
+					break;
 				}
-				return ret;
-			}();
-			auto types = ctypes;
+			}
 			Random::shuffle(types);
 			for (auto&& t : types) {
 				if (SelectQuestImpl(t, a_victim, a_victoires, argFlags.get())) {
