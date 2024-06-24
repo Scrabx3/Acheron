@@ -367,7 +367,7 @@ namespace Acheron
 	bool Hooks::ExplosionHit(RE::Explosion& a_explosion, float* a_flt, RE::Actor* a_actor)
 	{
 		auto ret = _ExplosionHit(a_explosion, a_flt, a_actor);
-		if (!ret || !a_actor)
+		if (!Validation::CanProcessDamage() || !ret || !a_actor)
 			return ret;
 		if (Defeat::IsDamageImmune(a_actor))
 			return false;
@@ -386,7 +386,7 @@ namespace Acheron
 
 	float Hooks::FallAndPhysicsDamage(RE::Actor* a_this, float a_fallDistance, float a_defaultMult){
 		float dmg = _FallAndPhysicsDamage(a_this, a_fallDistance, a_defaultMult);
-		if (Defeat::IsDamageImmune(a_this)) {
+		if (!Validation::CanProcessDamage() || !Defeat::IsDamageImmune(a_this)) {
 			return dmg;
 		}
 		const float hp = a_this->GetActorValue(RE::ActorValue::kHealth);
