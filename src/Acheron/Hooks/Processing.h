@@ -14,6 +14,7 @@ public:
 			bool legal;
 
 			constexpr RE::Actor* operator->() const { return actor; }
+			constexpr operator RE::Actor*() const { return actor; }
 			constexpr operator bool() const { return actor != nullptr; }
 		};
 

@@ -99,10 +99,12 @@ namespace Acheron
 				if (!Settings::ConsequenceEnabled)
 					break;
 
-				if (a_victim == player || Defeat::IsDefeated(player)) {
+				if (a_victim->IsPlayerRef() || Defeat::IsDefeated(player)) {
 					if (CreateResolution(player, a_aggressor, false)) {
 						Defeat::DisableRecovery(true);
 						break;
+					} else if (!a_aggressor.legal) {
+						return false;
 					}
 					if (Settings::DoesPlayerAutoRecover()) {
 						break;
@@ -206,7 +208,7 @@ namespace Acheron
 								!gethostile(a_victoire.actor)	 ? Type::Civilian :
 								isguard(a_victoire.actor)			 ? Type::Guard :
 																								 Type::Hostile;
-		std::vector<RE::Actor*> memberlist{ a_victoire };
+		std::vector<RE::Actor*> memberlist{ a_victoire.actor };
 		for (auto& e : processLists->highActorHandles) {
 			auto actor = e.get().get();
 			if (!actor || actor == a_victoire.actor || actor->IsDead() || !actor->Is3DLoaded() || actor->IsHostileToActor(a_victoire.actor))
