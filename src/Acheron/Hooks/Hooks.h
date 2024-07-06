@@ -26,6 +26,7 @@ namespace Acheron
 		static bool ExplosionHit(RE::Explosion& explosion, float* flt, RE::Actor* actor);
 		static float FallAndPhysicsDamage(RE::Actor* a_this, float a_fallDistance, float a_defaultMult);
 		static uint8_t* DoDetect(RE::Actor* viewer, RE::Actor* target, int32_t& detectval, uint8_t& unk04, uint8_t& unk05, uint32_t& unk06, RE::NiPoint3& pos, float& unk08, float& unk09, float& unk10);
+		static bool GetActivateText(RE::TESBoundObject* a_this, RE::TESObjectREFR* a_activator, RE::BSString& a_dst);
 
 		// Hit Processing
 		static ProcessType GetProcessType(RE::Actor* a_aggressor, bool a_lethal);
@@ -50,35 +51,7 @@ namespace Acheron
 		static inline REL::Relocation<decltype(ExplosionHit)> _ExplosionHit;
 		static inline REL::Relocation<decltype(DoDetect)> _DoDetect;
 		static inline REL::Relocation<decltype(FallAndPhysicsDamage)> _FallAndPhysicsDamage;
-
-
-		
-	// namespace FallLongDistance
-	// {
-	// 	struct CalcDoDamage
-	// 	{
-	// 		static float thunk(RE::Actor* a_this, float a_fallDistance, float a_defaultMult)
-	// 		{
-	// 			const auto fallDamage = func(a_this, a_fallDistance, a_defaultMult);
-	// 			if (fallDamage > 0.0f) {
-	// 				GameEventHolder::GetSingleton()->actorFallLongDistance.QueueEvent(a_this, a_this, a_fallDistance, fallDamage);
-	// 			}
-	// 			return fallDamage;
-	// 		}
-	// 		static inline REL::Relocation<decltype(thunk)> func;
-	// 	};
-
-	// 	void Install()
-	// 	{
-	// 		REL::Relocation<std::uintptr_t> take_ragdoll_damage{ RELOCATION_ID(36346, 37336), 0x35 };
-	// 		stl::write_thunk_call<CalcDoDamage>(take_ragdoll_damage.address());
-
-	// 		REL::Relocation<std::uintptr_t> process_movefinish_event{ RELOCATION_ID(36973, 37998), OFFSET(0xAE, 0xAB) };
-	// 		stl::write_thunk_call<CalcDoDamage>(process_movefinish_event.address());
-
-	// 		logger::info("Hooked Fall Damage"sv);
-	// 	}
-	// }
+		static inline REL::Relocation<decltype(GetActivateText)> _GetActivateText;
 	};
 
 }	 // namespace Hooks

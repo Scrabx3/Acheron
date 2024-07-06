@@ -285,12 +285,6 @@ namespace Acheron
 
 	void Resolution::Initialize()
 	{
-		auto& h = Events[Type::Hostile].emplace_back(GameForms::DefaultCommon);
-		h.flags.set(EventData::Flag::Hidden, EventData::Flag::Teleport, EventData::Flag::StartTeleport);
-
-		auto& g = Events[Type::Guard].emplace_back(GameForms::DefaultGuard);
-		g.flags.set(EventData::Flag::Hidden, EventData::Flag::Teleport, EventData::Flag::StartTeleport);
-
 		try {
 			const auto wpath = CONFIGPATH("Consequences\\Weights.yaml");
 			auto weights = fs::exists(wpath) ? YAML::LoadFile(wpath) : YAML::Node{};
@@ -414,6 +408,24 @@ namespace Acheron
 				}
 				logger::info("Cannot start event: {:X} ({})", there->first->GetFormID(), there->first->GetFormEditorID());
 				it.erase(there);
+			}
+		}
+		using Flag = EventData::Flag;
+		if (stl::enumeration{ Flag::Hidden, Flag::Teleport, Flag::StartTeleport }.all(a_flags)) {
+			switch (type) {
+			case Type::NPC:
+				break;
+			case Type::Guard:
+				if (GameForms::DefaultGuard->Start()) {
+					logger::info("Started Default Guard Event");
+					return true;
+				}
+			default:
+				if (GameForms::DefaultGuard->Start()) {
+					logger::info("Started Default Common Event");
+					return true;
+				}
+				break;
 			}
 		}
 		logger::info("No event quest found");

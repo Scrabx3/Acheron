@@ -50,6 +50,9 @@ namespace Acheron
 		// ==================================================
 		REL::Relocation<std::uintptr_t> upccs{ RE::Character::VTABLE[0] };
 		_UpdateCombatControllerSettings = upccs.write_vfunc(0x11B, UpdateCombatControllerSettings);
+		// ==================================================
+		// REL::Relocation<std::uintptr_t> activtxt{ RE::TESNPC::VTABLE[0] };
+		// _GetActivateText = activtxt.write_vfunc(0x4C, GetActivateText);
 
 		logger::info("Hooks installed");
 	}
@@ -219,8 +222,9 @@ namespace Acheron
 		if (Defeat::IsDamageImmune(a_target))
 			return;
 
-		const auto aggressor = a_hitData.aggressor.get().get();
-		if (aggressor && Validation::CanProcessDamage() && Validation::ValidatePair(a_target, aggressor)) {
+		const auto aggressorPtr = a_hitData.aggressor.get();
+		if (aggressorPtr && Validation::CanProcessDamage() && Validation::ValidatePair(a_target, aggressorPtr.get())) {
+			const auto aggressor = aggressorPtr.get();
 			const float hp = a_target->GetActorValue(RE::ActorValue::kHealth);
 			auto dmg = a_hitData.totalDamage + fabs(GetIncomingEffectDamage(a_target));
 			AdjustByDifficultyMult(dmg, aggressor->IsPlayerRef());
@@ -404,6 +408,20 @@ namespace Acheron
 			return nullptr;
 		}
 		return _DoDetect(viewer, target, detectval, unk04, unk05, unk06, pos, unk08, unk09, unk10);
+	}
+
+	bool Hooks::GetActivateText(RE::TESBoundObject* a_this, RE::TESObjectREFR* a_activator, RE::BSString& a_dst)
+	{
+		bool ret = _GetActivateText(a_this, a_activator, a_dst);
+		if (!ret || !a_this || !a_activator || a_activator->IsPlayerRef())
+			return ret;
+
+		auto ref = a_this->As<RE::Actor>();
+		if (!ref || !Defeat::IsDefeated(ref))
+			return ret;
+		
+		a_dst = fmt::format("{} (Defeated)", a_dst);
+		return ret;
 	}
 
 	Hooks::ProcessType Hooks::GetProcessType(RE::Actor* a_aggressor, bool a_lethal)

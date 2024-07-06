@@ -47,16 +47,16 @@ namespace Acheron
 		{
 			Assailant = 0,
 			Victim = 1,
-			Unspecified = 2,	// IDEA: implement for things like quest stage conditioning
+			Unspecified = 2,
 			Total
 		};
 
 		enum class Flag : uint8_t
 		{
-			Teleport = 1 << 0,			 // Does the event teleport the victim away at any point in the event
-			InCombat = 1 << 1,			 // Can the event start mid combat
-			Hidden = 1 << 2,				 // Is the event hidden from the player, i.e. no settings displayed
-			StartTeleport = 1 << 3,	 // Does the event start with a teleport
+			Teleport = 1 << 0,	
+			InCombat = 1 << 1,			
+			Hidden = 1 << 2,				
+			StartTeleport = 1 << 3
 		};
 
 		enum Priority : uint8_t
@@ -72,8 +72,6 @@ namespace Acheron
 		/// @param a_file The yaml file to construct the quest from
 		/// @throw ParseException when the given file has errors or requirements arent met
 		EventData(const std::string& a_file);
-		EventData(RE::TESQuest* a_quest) :
-				quest(a_quest) { assert(a_quest); };
 		~EventData() = default;
 
 		/// @brief Validate that this quest is allowed to play for the given actors
@@ -135,6 +133,6 @@ namespace Acheron
 
 	private:
 		static bool SelectQuestImpl(Type type, RE::Actor* a_victim, const std::vector<RE::Actor*>& a_victoires, const EventData::Flag& a_flags);
-		static inline std::vector<EventData> Events[Type::Total];
+		static inline std::vector<EventData> Events[Type::Total]{};
 	};
 }
