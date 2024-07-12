@@ -104,7 +104,10 @@ namespace Acheron
 						Defeat::DisableRecovery(true);
 						break;
 					} else if (!a_aggressor.legal) {
-						return false;
+						// NOTE: This here might not be good to ignore but
+						// inconsistency that would be created is likely more
+						// severe than the possible issues that could arise
+						// return false;
 					}
 					if (Settings::DoesPlayerAutoRecover()) {
 						break;
