@@ -42,17 +42,13 @@ namespace Acheron
 		REL::Relocation<std::uintptr_t> plu{ RE::PlayerCharacter::VTABLE[0] };
 		_PlUpdate = plu.write_vfunc(0xAD, UpdatePlayer);
 		// ==================================================
-		REL::Relocation<std::uintptr_t> l3d{ RE::Character::VTABLE[0] };
-		_Load3D = l3d.write_vfunc(0x6A, Load3D);
+		REL::Relocation<std::uintptr_t> char_vt{ RE::Character::VTABLE[0] };
+		_Load3D = char_vt.write_vfunc(0x6A, Load3D);
+		_UpdateCombat = char_vt.write_vfunc(0xE4, UpdateCombat);
+		// _UpdateCombatControllerSettings = char_vt.write_vfunc(0x11B, UpdateCombatControllerSettings);
 		// ==================================================
-		REL::Relocation<std::uintptr_t> upch{ RE::Character::VTABLE[0] };
-		_UpdateCharacter = upch.write_vfunc(0x0AD, UpdateCharacter);
-		// ==================================================
-		REL::Relocation<std::uintptr_t> upccs{ RE::Character::VTABLE[0] };
-		_UpdateCombatControllerSettings = upccs.write_vfunc(0x11B, UpdateCombatControllerSettings);
-		// ==================================================
-		// REL::Relocation<std::uintptr_t> activtxt{ RE::TESNPC::VTABLE[0] };
-		// _GetActivateText = activtxt.write_vfunc(0x4C, GetActivateText);
+		// REL::Relocation<std::uintptr_t> npc_vt{ RE::TESNPC::VTABLE[0] };
+		// _GetActivateText = npc_vt.write_vfunc(0x4C, GetActivateText);
 
 		logger::info("Hooks installed");
 	}
