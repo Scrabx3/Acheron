@@ -420,8 +420,9 @@ namespace Acheron
 					logger::info("Started Default Guard Event");
 					return true;
 				}
+				__fallthrough;
 			default:
-				if (GameForms::DefaultGuard->Start()) {
+				if (GameForms::DefaultCommon->Start()) {
 					logger::info("Started Default Common Event");
 					return true;
 				}
