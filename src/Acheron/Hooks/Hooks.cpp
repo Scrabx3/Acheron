@@ -389,6 +389,10 @@ namespace Acheron
 		if (!Validation::CanProcessDamage() || Defeat::IsDamageImmune(a_this)) {
 			return dmg;
 		}
+		if (a_this->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
+			return dmg;
+		if (a_this->HasEffectWithArchetype(RE::MagicTarget::Archetype::kEtherealize))
+			return dmg;
 		const float hp = a_this->GetActorValue(RE::ActorValue::kHealth);
 		if (dmg < hp) {
 			return dmg;
