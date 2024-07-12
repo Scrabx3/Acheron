@@ -45,7 +45,8 @@ namespace Acheron
 		REL::Relocation<std::uintptr_t> char_vt{ RE::Character::VTABLE[0] };
 		_Load3D = char_vt.write_vfunc(0x6A, Load3D);
 		_UpdateCombat = char_vt.write_vfunc(0xE4, UpdateCombat);
-		// _UpdateCombatControllerSettings = char_vt.write_vfunc(0x11B, UpdateCombatControllerSettings);
+		_UpdateCharacter = char_vt.write_vfunc(0xAD, UpdateCharacter);
+		_UpdateCombatControllerSettings = char_vt.write_vfunc(0x11B, UpdateCombatControllerSettings);
 		// ==================================================
 		// REL::Relocation<std::uintptr_t> npc_vt{ RE::TESNPC::VTABLE[0] };
 		// _GetActivateText = npc_vt.write_vfunc(0x4C, GetActivateText);
@@ -138,41 +139,50 @@ namespace Acheron
 	void Hooks::UpdateCharacter(RE::Character* a_this, float a_delta)
 	{
 		_UpdateCharacter(a_this, a_delta);
-		if (Defeat::IsPacified(a_this) && a_this->IsInCombat()) {
-			a_this->StopCombat();
-		}
-
-		if (a_this->IsCommandedActor() || !IsNPC(a_this) || !Validation::CanProcessDamage())
+		if (!Validation::CanProcessDamage() || a_this->IsCommandedActor() || !IsNPC(a_this))
 			return;
-		if (Defeat::IsDefeated(a_this))
+		if (Defeat::IsDamageImmune(a_this))
 			return;
 
 		CalcDamageOverTime(a_this);
 	}
 
+	void Hooks::UpdateCombat(RE::Character* a_this)
+	{
+		if (Defeat::IsPacified(a_this)) {
+			if (a_this->IsInCombat())
+				a_this->StopCombat();
+			return;
+		}
+		_UpdateCombat(a_this);
+	}
+
 	void Hooks::UpdateCombatControllerSettings(RE::Character* a_this)
 	{
 		_UpdateCombatControllerSettings(a_this);
-		auto group = a_this->GetCombatGroup();
-		if (!group) {
-			return;
+		if (a_this->combatController && Defeat::IsPacified(a_this)) {
+			a_this->combatController->ignoringCombat = true;
 		}
-		std::vector<RE::CombatTarget*> remove_these{};
-		group->lock.LockForWrite();
-		for (auto&& cmbtarget : group->targets) {
-			auto targetptr = cmbtarget.targetHandle.get();
-			if (targetptr && Defeat::IsPacified(targetptr.get())) {
-				remove_these.push_back(&cmbtarget);
-			}
-		}
-		for (auto&& remove : remove_these) {
-			if (!remove->attackedMember.get())
-				continue;
-			if (!remove->targetHandle.get())
-				continue;
-			group->targets.erase(remove);
-		}
-		group->lock.UnlockForWrite();
+		// auto group = a_this->GetCombatGroup();
+		// if (!group) {
+		// 	return;
+		// }
+		// std::vector<RE::CombatTarget*> remove_these{};
+		// group->lock.LockForWrite();
+		// for (auto&& cmbtarget : group->targets) {
+		// 	auto targetptr = cmbtarget.targetHandle.get();
+		// 	if (targetptr && Defeat::IsPacified(targetptr.get())) {
+		// 		remove_these.push_back(&cmbtarget);
+		// 	}
+		// }
+		// for (auto&& remove : remove_these) {
+		// 	if (!remove->attackedMember.get())
+		// 		continue;
+		// 	if (!remove->targetHandle.get())
+		// 		continue;
+		// 	group->targets.erase(remove);
+		// }
+		// group->lock.UnlockForWrite();
 	}
 
 	void Hooks::CalcDamageOverTime(RE::Actor* a_target)
@@ -410,14 +420,12 @@ namespace Acheron
 		return _DoDetect(viewer, target, detectval, unk04, unk05, unk06, pos, unk08, unk09, unk10);
 	}
 
-	bool Hooks::GetActivateText(RE::TESBoundObject* a_this, RE::TESObjectREFR* a_activator, RE::BSString& a_dst)
+	bool Hooks::GetActivateText(RE::TESNPC* a_this, RE::TESObjectREFR* a_activator, RE::BSString& a_dst)
 	{
-		bool ret = _GetActivateText(a_this, a_activator, a_dst);
-		if (!ret || !a_this || !a_activator || a_activator->IsPlayerRef())
-			return ret;
-
-		auto ref = a_this->As<RE::Actor>();
-		if (!ref || !Defeat::IsDefeated(ref))
+		const auto ret = _GetActivateText(a_this, a_activator, a_dst);
+		auto ref = a_this ? a_this->AsReference() : nullptr;
+		auto act = ref ? ref->As<RE::Actor>() : nullptr;
+		if (!act || !Defeat::IsDefeated(act))
 			return ret;
 		
 		a_dst = fmt::format("{} (Defeated)", a_dst);

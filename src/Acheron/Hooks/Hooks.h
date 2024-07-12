@@ -18,6 +18,7 @@ namespace Acheron
 		static void CompileAndRun(RE::Script* a_script, RE::ScriptCompiler* a_compiler, RE::COMPILER_NAME a_name, RE::TESObjectREFR* a_targetRef);
 		static void UpdatePlayer(RE::PlayerCharacter* player, float delta);
 		static RE::NiAVObject* Load3D(RE::Character& a_this, bool a_arg1);
+		static void UpdateCombat(RE::Character* a_this);
 		static void UpdateCharacter(RE::Character* a_this, float a_delta);
 		static void UpdateCombatControllerSettings(RE::Character* a_this);
 		static void WeaponHit(RE::Actor* a_target, RE::HitData& a_hitData);
@@ -26,7 +27,7 @@ namespace Acheron
 		static bool ExplosionHit(RE::Explosion& explosion, float* flt, RE::Actor* actor);
 		static float FallAndPhysicsDamage(RE::Actor* a_this, float a_fallDistance, float a_defaultMult);
 		static uint8_t* DoDetect(RE::Actor* viewer, RE::Actor* target, int32_t& detectval, uint8_t& unk04, uint8_t& unk05, uint32_t& unk06, RE::NiPoint3& pos, float& unk08, float& unk09, float& unk10);
-		static bool GetActivateText(RE::TESBoundObject* a_this, RE::TESObjectREFR* a_activator, RE::BSString& a_dst);
+		static bool GetActivateText(RE::TESNPC* a_this, RE::TESObjectREFR* a_activator, RE::BSString& a_dst);
 
 		// Hit Processing
 		static ProcessType GetProcessType(RE::Actor* a_aggressor, bool a_lethal);
@@ -43,6 +44,7 @@ namespace Acheron
 		static inline REL::Relocation<decltype(CompileAndRun)> _CompileAndRun;
 		static inline REL::Relocation<decltype(UpdatePlayer)> _PlUpdate;
 		static inline REL::Relocation<decltype(Load3D)> _Load3D;
+		static inline REL::Relocation<decltype(UpdateCombat)> _UpdateCombat;
 		static inline REL::Relocation<decltype(UpdateCharacter)> _UpdateCharacter;
 		static inline REL::Relocation<decltype(UpdateCombatControllerSettings)> _UpdateCombatControllerSettings;
 		static inline REL::Relocation<decltype(WeaponHit)> _WeaponHit;
