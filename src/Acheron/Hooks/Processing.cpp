@@ -148,7 +148,7 @@ namespace Acheron
 		const auto validtarget = [&](const RE::ActorPtr ptr) -> bool {
 			if (!ptr)
 				return false;
-			if (a_victim->IsPlayerRef() && Settings::bFolWithPlDefeat)
+			if (a_victim->IsPlayerRef() && ptr->IsPlayerTeammate() && Settings::bFolWithPlDefeat)
 				return false;
 			return !ptr->IsCommandedActor() && ptr->Is3DLoaded() && !ptr->IsDead() && !Defeat::IsDamageImmune(ptr.get());
 		};
