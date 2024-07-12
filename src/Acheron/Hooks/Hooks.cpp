@@ -46,7 +46,6 @@ namespace Acheron
 		_Load3D = char_vt.write_vfunc(0x6A, Load3D);
 		_UpdateCombat = char_vt.write_vfunc(0xE4, UpdateCombat);
 		_UpdateCharacter = char_vt.write_vfunc(0xAD, UpdateCharacter);
-		_UpdateCombatControllerSettings = char_vt.write_vfunc(0x11B, UpdateCombatControllerSettings);
 		// ==================================================
 		// REL::Relocation<std::uintptr_t> npc_vt{ RE::TESNPC::VTABLE[0] };
 		// _GetActivateText = npc_vt.write_vfunc(0x4C, GetActivateText);
@@ -155,34 +154,6 @@ namespace Acheron
 			return;
 		}
 		_UpdateCombat(a_this);
-	}
-
-	void Hooks::UpdateCombatControllerSettings(RE::Character* a_this)
-	{
-		_UpdateCombatControllerSettings(a_this);
-		if (a_this->combatController && Defeat::IsPacified(a_this)) {
-			a_this->combatController->ignoringCombat = true;
-		}
-		// auto group = a_this->GetCombatGroup();
-		// if (!group) {
-		// 	return;
-		// }
-		// std::vector<RE::CombatTarget*> remove_these{};
-		// group->lock.LockForWrite();
-		// for (auto&& cmbtarget : group->targets) {
-		// 	auto targetptr = cmbtarget.targetHandle.get();
-		// 	if (targetptr && Defeat::IsPacified(targetptr.get())) {
-		// 		remove_these.push_back(&cmbtarget);
-		// 	}
-		// }
-		// for (auto&& remove : remove_these) {
-		// 	if (!remove->attackedMember.get())
-		// 		continue;
-		// 	if (!remove->targetHandle.get())
-		// 		continue;
-		// 	group->targets.erase(remove);
-		// }
-		// group->lock.UnlockForWrite();
 	}
 
 	void Hooks::CalcDamageOverTime(RE::Actor* a_target)
@@ -413,7 +384,7 @@ namespace Acheron
 
 	uint8_t* Hooks::DoDetect(RE::Actor* viewer, RE::Actor* target, int32_t& detectval, uint8_t& unk04, uint8_t& unk05, uint32_t& unk06, RE::NiPoint3& pos, float& unk08, float& unk09, float& unk10)
 	{
-		if (target && Defeat::IsPacified(target)) {
+		if (target && Defeat::IsPacified(target) || viewer && Defeat::IsPacified(viewer)) {
 			detectval = -1000;
 			return nullptr;
 		}
