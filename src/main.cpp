@@ -21,7 +21,7 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message)
 	case SKSE::MessagingInterface::kDataLoaded:
 		if (!Acheron::GameForms::LoadForms()) {
 			logger::critical("Unable to load plugin objects");
-			if (SKSE::WinAPI::MessageBox(nullptr, "Some game objects could not be loaded. This is usually due to a required game plugin not being loaded in your game. Please ensure that you have all requirements installed.\n\nIf you are on Skyrim 1.6.1130+ and use SSE Engine Fixes, ensure that the Setting 'EnableAchievementsWithMods' is set to 'false' in EngineFixes.toml.\n\nExit Game now? (Recommended yes)", "Acheron Load Data", 0x00000004) == 6)
+			if (SKSE::WinAPI::MessageBox(nullptr, "Some game objects could not be loaded. This is usually due to a required game plugin not being loaded in your game. Please ensure that you have all requirements installed.\n\nExit Game now? (Recommended yes)", "Acheron Load Data", 0x00000004) == 6)
 				std::_Exit(EXIT_FAILURE);
 			return;
 		}
