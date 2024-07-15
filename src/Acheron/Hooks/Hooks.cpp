@@ -348,9 +348,9 @@ namespace Acheron
 	bool Hooks::ExplosionHit(RE::Explosion& a_explosion, float* a_flt, RE::Actor* a_actor)
 	{
 		auto ret = _ExplosionHit(a_explosion, a_flt, a_actor);
-		if (!Validation::CanProcessDamage() || !ret || !a_actor)
+		if (!ret || !a_actor || !Validation::CanProcessDamage() || !IsNPC(a_actor) || a_actor->IsCommandedActor())
 			return ret;
-		if (Defeat::IsDamageImmune(a_actor))
+		if (Defeat::IsDamageImmune(a_actor) || Validation::ValidatePair(a_actor, nullptr))
 			return false;
 
 		const float hp = a_actor->GetActorValue(RE::ActorValue::kHealth);
@@ -365,11 +365,13 @@ namespace Acheron
 		return Processing::RegisterDefeat(a_actor, aggressor) ? false : ret;
 	}
 
-	float Hooks::FallAndPhysicsDamage(RE::Actor* a_this, float a_fallDistance, float a_defaultMult){
+	float Hooks::FallAndPhysicsDamage(RE::Actor* a_this, float a_fallDistance, float a_defaultMult)
+	{
 		float dmg = _FallAndPhysicsDamage(a_this, a_fallDistance, a_defaultMult);
-		if (!Validation::CanProcessDamage() || Defeat::IsDamageImmune(a_this)) {
+		if (!Validation::CanProcessDamage() || Defeat::IsDamageImmune(a_this))
 			return dmg;
-		}
+		if (!IsNPC(a_this) || a_this->IsCommandedActor() || Validation::ValidatePair(a_this, nullptr))
+			return dmg;
 		if (a_this->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
 			return dmg;
 		if (a_this->HasEffectWithArchetype(RE::MagicTarget::Archetype::kEtherealize))
