@@ -47,17 +47,17 @@ namespace Acheron
 			LOOKUPFORM(Defeated, 0x801);
 			LOOKUPFORM(Pacified, 0x802);
 
-			LOOKUPFORM(DefaultCommon, 0x807);
-			LOOKUPFORM(DefaultGuard, 0x80C);
+			LOOKUPFORM(DefaultCommon, 0x805);
+			LOOKUPFORM(DefaultGuard, 0x809);
 
-			LOOKUPFORM(HunterPride, 0x809);
-			LOOKUPFORM(HunterPrideEffect, 0x808);
+			LOOKUPFORM(HunterPride, 0x807);
+			LOOKUPFORM(HunterPrideEffect, 0x806);
 
-			LOOKUPFORM(BlankPackage, 0x806);
+			LOOKUPFORM(BlankPackage, 0x804);
 
-			LOOKUPFORM(IgnoredFaction, 0x82B);
+			LOOKUPFORM(IgnoredFaction, 0x80C);
 
-			LOOKUPFORM(InteractionPerk, 0x805);
+			LOOKUPFORM(InteractionPerk, 0x803);
 
 			return true;
 		}
