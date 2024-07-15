@@ -10,6 +10,7 @@ namespace Acheron
 			0x00018EE6,	 // Azuras Star Interior (DA01)
 			0x00018C91,	 // Sovngarde
 			0x0005254C,	 // Abandoned Shack Interior
+			0x00018C92,	 // Thalmor Embassy
 		};
 		exclNPC[VTarget::Either] = {
 			0x0003C57C,	 // Paarthurnax
@@ -45,12 +46,12 @@ namespace Acheron
 			0x000A6F1E,	 // Companion Farkas Werewolf, Ambusher02 (C02)
 			0x000A6F43,	 // Companion Farkas Werewolf, Ambusher03 (C02)
 			0x000A6F0F,	 // Companion Farkas Werewolf, Ambusher04 (C02)
-			0x000A6F0E	 // Companion Farkas Werewolf, Ambusher05 (C02)
+			0x000A6F0E,	 // Companion Farkas Werewolf, Ambusher05 (C02)
 		};
 		exclFaction[VTarget::Either] = {
 			Acheron::GameForms::IgnoredFaction->GetFormID(),
 			0x00028347,	 // Alduin fac
-			0x00103531	// Restoration Master Qst
+			0x00103531,	 // Restoration Master Qst
 		};
 		const auto exclusionpath = CONFIGPATH("Validation");
 		if (fs::exists(exclusionpath)) {
@@ -113,8 +114,6 @@ namespace Acheron
 
 		if (static const auto DGIntimidateQuest = RE::TESForm::LookupByID<RE::TESQuest>(0x00047AE6); DGIntimidateQuest->currentStage == 10)	 // Brawl Quest
 			return false;
-		if (static const auto MQ101 = RE::TESForm::LookupByID<RE::TESQuest>(0x0003372B); MQ101->currentStage > 1 && MQ101->currentStage < 1000)	 // Vanilla Intro
-			return false;
 		if (static const auto DLCVQ08 = RE::TESForm::LookupByID<RE::TESQuest>(0x02007C25); DLCVQ08->currentStage == 60)	 // Harkon
 			return false;
 		if (static const auto DLC1VQ07 = RE::TESForm::LookupByID<RE::TESQuest>(0x02002853); DLC1VQ07->currentStage == 120)	// Gelebor
@@ -172,6 +171,10 @@ namespace Acheron
 			if (std::ranges::contains(exclLocTp, loc->formID))
 				return false;
 		}
+		static const auto MQ101 = RE::TESForm::LookupByID<RE::TESQuest>(0x0003372B);
+		if (MQ101->currentStage > 1 && MQ101->currentStage < 1000)	 // Vanilla Intro
+			return false;
+
 		return true;
 	}
 
@@ -385,7 +388,7 @@ namespace Acheron
 			return false;
 		}
 		const auto base = Acheron::GetLeveledActorBase(a_actor);
-		if (base && find(a_actor->GetFormID(), exclNPC)) {
+		if (base && find(base->GetFormID(), exclNPC)) {
 			return false;
 		}
 		const auto race = a_actor->GetRace();
