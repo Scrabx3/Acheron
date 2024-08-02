@@ -368,18 +368,17 @@ namespace Acheron
 	float Hooks::FallAndPhysicsDamage(RE::Actor* a_this, float a_fallDistance, float a_defaultMult)
 	{
 		float dmg = _FallAndPhysicsDamage(a_this, a_fallDistance, a_defaultMult);
+		const float hp = a_this->GetActorValue(RE::ActorValue::kHealth);
+		if (dmg < hp)
+			return dmg;
 		if (!Validation::CanProcessDamage() || Defeat::IsDamageImmune(a_this))
 			return dmg;
-		if (!IsNPC(a_this) || a_this->IsCommandedActor() || Validation::ValidatePair(a_this, nullptr))
+		if (!IsNPC(a_this) || a_this->IsCommandedActor() || !Validation::ValidatePair(a_this, nullptr))
 			return dmg;
 		if (a_this->IsPlayerRef() && RE::PlayerCharacter::GetSingleton()->IsGodMode())
 			return dmg;
 		if (a_this->HasEffectWithArchetype(RE::MagicTarget::Archetype::kEtherealize))
 			return dmg;
-		const float hp = a_this->GetActorValue(RE::ActorValue::kHealth);
-		if (dmg < hp) {
-			return dmg;
-		}
 		auto aggressor = Processing::AggressorInfo(nullptr, a_this);
 		return Processing::RegisterDefeat(a_this, aggressor) ? 0.0f : dmg;
 	}
