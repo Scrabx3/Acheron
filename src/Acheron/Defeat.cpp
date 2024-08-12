@@ -76,6 +76,15 @@ namespace Acheron
 				a_victim->NotifyAnimationGraph("BleedoutStart");
 			}
 		}
+		const auto& process = a_victim->currentProcess;
+		const auto middlehigh = process ? process->middleHigh : nullptr;
+		if (middlehigh) {
+			for (auto& commandedActorData : middlehigh->commandedActors) {
+				if (const auto summon = commandedActorData.activeEffect) {
+					summon->Dispel(true);
+				}
+			}
+		}
 
 		const auto health = a_victim->GetActorValue(RE::ActorValue::kHealth);
 		a_victim->RestoreActorValue(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kHealth, -health + 0.05f);

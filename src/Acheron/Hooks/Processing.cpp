@@ -62,15 +62,6 @@ namespace Acheron
 	{
 		logger::info("Aggressor {:X} -> Register Defeat for Victim {:X}", a_aggressor ? a_aggressor->GetFormID() : 0, a_victim->GetFormID());
 		assert(a_victim);
-		const auto& process = a_victim->currentProcess;
-		const auto middlehigh = process ? process->middleHigh : nullptr;
-		if (middlehigh) {
-			for (auto& commandedActorData : middlehigh->commandedActors) {
-				const auto summon = commandedActorData.activeEffect;
-				if (!summon)
-					summon->Dispel(true);
-			}
-		}
 		if (!a_victim->IsPlayerRef() && Settings::bNotifyDefeat) {
 			std::string base = fmt::format("{} has been defeated", a_victim->GetDisplayFullName());
 			if (a_aggressor) {
@@ -82,8 +73,14 @@ namespace Acheron
 			RE::DebugNotification(base.c_str());
 		}
 
+		if (Settings::bFolWithPlDefeat && a_victim->IsPlayerRef()) {
+			const auto flist = GetFollowers();
+			for (auto&& f : flist) {
+				Defeat::DefeatActor(f);
+			}
+		}
 		const auto player = RE::PlayerCharacter::GetSingleton();
-		switch (GetDefeatType(a_aggressor.actor, a_victim)) {
+		switch (GetDefeatType(a_aggressor.actor)) {
 		case DefeatResult::Defeat:
 			Defeat::DefeatActor(a_victim);
 			if (Settings::ConsequenceEnabled && a_victim->IsPlayerRef()) {
@@ -126,16 +123,10 @@ namespace Acheron
 		default:
 			return false;
 		}
-		if (Settings::bFolWithPlDefeat && a_victim->IsPlayerRef()) {
-			const auto flist = GetFollowers();
-			for (auto&& f : flist) {
-				Defeat::DefeatActor(f);
-			}
-		}
 		return true;
 	}
 
-	Processing::DefeatResult Processing::GetDefeatType(RE::Actor* a_aggressor, RE::Actor* a_victim)
+	Processing::DefeatResult Processing::GetDefeatType(RE::Actor* a_aggressor)
 	{
 		if (!a_aggressor)
 			return DefeatResult::Resolution;
@@ -151,9 +142,11 @@ namespace Acheron
 		const auto validtarget = [&](const RE::ActorPtr ptr) -> bool {
 			if (!ptr)
 				return false;
-			if (a_victim->IsPlayerRef() && ptr->IsPlayerTeammate() && Settings::bFolWithPlDefeat)
+			if (!ptr->Is3DLoaded() || ptr->IsDead() || Defeat::IsDamageImmune(ptr.get()))
 				return false;
-			return !ptr->IsCommandedActor() && ptr->Is3DLoaded() && !ptr->IsDead() && !Defeat::IsDamageImmune(ptr.get());
+			if (const auto p = ptr->GetMiddleHighProcess(); p && p->killQueued || ptr->IsCommandedActor())
+				return false;
+			return true;
 		};
 		std::set<RE::FormID> targets{};	 // avoid duplicates
 		for (auto& e : agrzone->targets) {
@@ -162,14 +155,13 @@ namespace Acheron
 				continue;
 			if (validtarget(target))
 				targets.insert(target->formID);
-
-			const auto& targetgroup = target->GetCombatGroup();
-			if (!targetgroup)
-				continue;
-			for (const auto& member : targetgroup->members) {
-				if (const auto t = member.memberHandle.get(); validtarget(t))
-					targets.insert(target->formID);
-			}
+			// const auto& targetgroup = target->GetCombatGroup();
+			// if (!targetgroup)
+			// 	continue;
+			// for (const auto& member : targetgroup->members) {
+			// 	if (const auto t = member.memberHandle.get(); validtarget(t))
+			// 		targets.insert(target->formID);
+			// }
 		}
 		logger::info("Aggressor {:X} has {} targets", a_aggressor->GetFormID(), targets.size());
 		switch (targets.size()) {
