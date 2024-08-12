@@ -383,31 +383,31 @@ namespace Acheron
 		assert(type != Type::Any && type != Type::Total);
 		if (Events[type].empty()) {
 			logger::info("No custom events for type {}", type);
-			return false;
-		}
-		std::vector<std::pair<RE::TESQuest*, int>> ret[EventData::Priority::p_Total];
-		for (auto& e : Events[type]) {
-			if (e.weight <= 0 || !e.flags.all(a_flags))
-				continue;
-			if (!e.CheckConditions(a_victoires, a_victim))
-				continue;
-			ret[e.priority].emplace_back(e.quest, e.weight);
-		}
-		for (auto i = EventData::Priority::p_Total - 1; i >= 0; i--) {
-			auto& it = ret[i];
-			while (!it.empty()) {
-				const auto weights = std::ranges::fold_left(it | std::ranges::views::values, 0, std::plus<>());
-				auto where = Random::draw<int>(1, weights);
-				const auto there = std::find_if(it.begin(), it.end(), [where](std::pair<RE::TESQuest*, int32_t>& pair) mutable {
-					where -= pair.second;
-					return where <= 0;
-				});
-				if (there->first->Start()) {
-					logger::info("Started event: {:X} ({})", there->first->GetFormID(), there->first->GetFormEditorID());
-					return true;
+		} else {
+			std::vector<std::pair<RE::TESQuest*, int>> ret[EventData::Priority::p_Total];
+			for (auto& e : Events[type]) {
+				if (e.weight <= 0 || !e.flags.all(a_flags))
+					continue;
+				if (!e.CheckConditions(a_victoires, a_victim))
+					continue;
+				ret[e.priority].emplace_back(e.quest, e.weight);
+			}
+			for (auto i = EventData::Priority::p_Total - 1; i >= 0; i--) {
+				auto& it = ret[i];
+				while (!it.empty()) {
+					const auto weights = std::ranges::fold_left(it | std::ranges::views::values, 0, std::plus<>());
+					auto where = Random::draw<int>(1, weights);
+					const auto there = std::find_if(it.begin(), it.end(), [where](std::pair<RE::TESQuest*, int32_t>& pair) mutable {
+						where -= pair.second;
+						return where <= 0;
+					});
+					if (there->first->Start()) {
+						logger::info("Started event: {:X} ({})", there->first->GetFormID(), there->first->GetFormEditorID());
+						return true;
+					}
+					logger::info("Cannot start event: {:X} ({})", there->first->GetFormID(), there->first->GetFormEditorID());
+					it.erase(there);
 				}
-				logger::info("Cannot start event: {:X} ({})", there->first->GetFormID(), there->first->GetFormEditorID());
-				it.erase(there);
 			}
 		}
 		using Flag = EventData::Flag;
