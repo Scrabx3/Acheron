@@ -12,7 +12,7 @@ set(PAPYRUS_VR "14vr")
 # ---- Project ----
 project(
     Acheron
-    VERSION 1.5.2.3
+    VERSION 1.5.3.0
     LANGUAGES CXX
 )
 
