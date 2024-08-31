@@ -285,6 +285,9 @@ namespace Acheron
 
 	void Resolution::Initialize()
 	{
+		Events[Type::Hostile].emplace_back(GameForms::DefaultCommon, "Acheron Default", stl::enumeration{ EventData::Flag::Teleport, EventData::Flag::StartTeleport }.get());
+		Events[Type::Guard].emplace_back(GameForms::DefaultGuard, "Acheron Default Guard", stl::enumeration{ EventData::Flag::Teleport, EventData::Flag::StartTeleport }.get());
+
 		try {
 			const auto wpath = CONFIGPATH("Consequences\\Weights.yaml");
 			auto weights = fs::exists(wpath) ? YAML::LoadFile(wpath) : YAML::Node{};
@@ -383,74 +386,63 @@ namespace Acheron
 		assert(type != Type::Any && type != Type::Total);
 		if (Events[type].empty()) {
 			logger::info("No custom events for type {}", type);
-		} else {
-			std::vector<std::pair<RE::TESQuest*, int>> ret[EventData::Priority::p_Total];
-			for (auto& e : Events[type]) {
-				if (e.weight <= 0 || !e.flags.all(a_flags))
-					continue;
-				if (!e.CheckConditions(a_victoires, a_victim))
-					continue;
-				ret[e.priority].emplace_back(e.quest, e.weight);
-			}
-			for (auto i = EventData::Priority::p_Total - 1; i >= 0; i--) {
-				auto& it = ret[i];
-				while (!it.empty()) {
-					const auto weights = std::ranges::fold_left(it | std::ranges::views::values, 0, std::plus<>());
-					auto where = Random::draw<int>(1, weights);
-					const auto there = std::find_if(it.begin(), it.end(), [where](std::pair<RE::TESQuest*, int32_t>& pair) mutable {
-						where -= pair.second;
-						return where <= 0;
-					});
-					if (there->first->Start()) {
-						logger::info("Started event: {:X} ({})", there->first->GetFormID(), there->first->GetFormEditorID());
-						return true;
-					}
-					logger::info("Cannot start event: {:X} ({})", there->first->GetFormID(), there->first->GetFormEditorID());
-					it.erase(there);
-				}
-			}
+			return false;
 		}
-		using Flag = EventData::Flag;
-		if (stl::enumeration{ Flag::Hidden, Flag::Teleport, Flag::StartTeleport }.all(a_flags)) {
-			switch (type) {
-			case Type::NPC:
-				break;
-			case Type::Guard:
-				if (GameForms::DefaultGuard->Start()) {
-					logger::info("Started Default Guard Event");
+		std::vector<std::pair<RE::TESQuest*, int>> ret[EventData::Priority::p_Total];
+		for (auto& e : Events[type]) {
+			if (e.weight <= 0 || !e.flags.all(a_flags))
+				continue;
+			if (!e.CheckConditions(a_victoires, a_victim))
+				continue;
+			ret[e.priority].emplace_back(e.quest, e.weight);
+		}
+		for (auto i = EventData::Priority::p_Total - 1; i >= 0; i--) {
+			auto& it = ret[i];
+			while (!it.empty()) {
+				const auto weights = std::ranges::fold_left(it | std::ranges::views::values, 0, std::plus<>());
+				auto where = Random::draw<int>(1, weights);
+				const auto there = std::find_if(it.begin(), it.end(), [where](std::pair<RE::TESQuest*, int32_t>& pair) mutable {
+					where -= pair.second;
+					return where <= 0;
+				});
+				if (there->first->Start()) {
+					logger::info("Started event: {:X} ({})", there->first->GetFormID(), there->first->GetFormEditorID());
 					return true;
 				}
-				__fallthrough;
-			default:
-				if (GameForms::DefaultCommon->Start()) {
-					logger::info("Started Default Common Event");
-					return true;
-				}
-				break;
+				logger::info("Cannot start event: {:X} ({})", there->first->GetFormID(), there->first->GetFormEditorID());
+				it.erase(there);
 			}
 		}
 		logger::info("No event quest found");
 		return false;
 	}
 
-	std::vector<std::pair<std::string, uint8_t>> Resolution::GetEvents(Type a_type)
+	std::vector<std::string> Resolution::GetEvents(Type a_type)
 	{
-		std::vector<std::pair<std::string, uint8_t>> ret{};
+		std::vector<std::string> ret{};
 		for (auto&& e : Events[a_type]) {
 			if (e.flags.any(EventData::Flag::Hidden))
 				continue;
-
-			const auto name = e.flags.any(EventData::Flag::InCombat) ? fmt::format("{}(*)", e.name) : e.name;
-			ret.emplace_back(name, e.weight);
+			const auto argS = fmt::format("[{}{}{}] {};{};{}",
+					e.priority,
+					e.flags.all(EventData::Flag::InCombat) ? ", C" : "",
+					e.flags.all(EventData::Flag::Teleport) ? ", T" : "",
+					e.name,
+					e.weight,
+					e.quest->formID);
+			ret.push_back(argS);
 		}
+		std::sort(ret.begin(), ret.end());
 		return ret;
 	}
 
 	void Resolution::SetEventWeight(const std::string& a_name, Type a_type, uint8_t a_weight)
 	{
-		const auto& cmp = a_name.ends_with("(*)") ? a_name.substr(0, a_name.length() - 3) : a_name;
+		const auto where = a_name.rfind(';');
+		const auto idstr = a_name.substr(where + 1);
+		const auto id = static_cast<RE::FormID>(std::stoul(idstr));
 		for (auto&& e : Events[a_type]) {
-			if (e.name == cmp) {
+			if (e.quest->formID == id) {
 				e.weight = a_weight;
 				return;
 			}

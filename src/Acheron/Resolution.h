@@ -72,6 +72,8 @@ namespace Acheron
 		/// @param a_file The yaml file to construct the quest from
 		/// @throw ParseException when the given file has errors or requirements arent met
 		EventData(const std::string& a_file);
+		EventData(RE::TESQuest* a_qst, const std::string& a_name, Flag a_flags) :
+			quest(a_qst), name(a_name), flags(a_flags) { assert(quest); }
 		~EventData() = default;
 
 		/// @brief Validate that this quest is allowed to play for the given actors
@@ -122,11 +124,11 @@ namespace Acheron
 
 		/// @brief Retrieve all existing current registered events of a given type
 		/// @param a_type The event type to retrieve events for
-		/// @return vector of pairs <name, weight> for all events of the given type
-		static std::vector<std::pair<std::string, uint8_t>> GetEvents(Type a_type);
+		/// @return vector strings formatted: [Prio, Flags] Name;Weight;ID
+		static std::vector<std::string> GetEvents(Type a_type);
 
 		/// @brief Manipulate the weight of a given event belonging to the respective type
-		/// @param a_name The name of the event
+		/// @param a_name The name of the event (as given by GetEvents())
 		/// @param a_type The type the event belongs to
 		/// @param a_weight The new weight of the event
 		static void SetEventWeight(const std::string& a_name, Type a_type, uint8_t a_weight);

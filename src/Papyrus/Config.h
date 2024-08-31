@@ -13,7 +13,6 @@ namespace Papyrus
 	void SetSettingColor(VM* a_vm, StackID a_stackID, RE::TESQuest*, std::string a_setting, int a_value);
 
 	std::vector<std::string> GetEvents(VM* a_vm, StackID a_stackID, RE::TESQuest*, int a_type);
-	std::vector<int> GetEventWeights(VM* a_vm, StackID a_stackID, RE::TESQuest*, int a_type);
 	void SetEventWeight(VM* a_vm, StackID a_stackID, RE::TESQuest*, std::string a_event, int a_type, int a_newweight);
 
 	void UpdateKillmoveGlobal(VM* a_vm, StackID a_stackID, RE::TESQuest*);
@@ -31,7 +30,6 @@ namespace Papyrus
 		REGISTERFUNCND(SetSettingColor, "AcheronMCM");
 
 		REGISTERFUNCND(GetEvents, "AcheronMCM");
-		REGISTERFUNCND(GetEventWeights, "AcheronMCM");
 		REGISTERFUNCND(SetEventWeight, "AcheronMCM");
 
 		REGISTERFUNCND(UpdateKillmoveGlobal, "AcheronMCM");
