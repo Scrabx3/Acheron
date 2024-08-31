@@ -286,9 +286,13 @@ namespace Acheron
 					negate = HandleLethal(target, caster.actor);
 					break;
 				case ProcessType::Any:
-					static Cache cache{ 800ms };
-					if (!cache.Debounce(target->formID)) {
-						negate = HandleExposed(target);
+					{
+						static Cache cache{ 800ms };
+						if (!cache.Debounce(target->formID)) {
+							negate = HandleExposed(target);
+						} else {
+							negate = false;
+						}
 					}
 					break;
 				default:
@@ -559,7 +563,7 @@ namespace Acheron
 			std::this_thread::sleep_for(cacheTime);
 			std::scoped_lock lk{ _m };
 			cache.pop_front();
-		});
+		}).detach();
 		return false;
 	}
 

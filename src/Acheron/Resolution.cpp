@@ -285,8 +285,9 @@ namespace Acheron
 
 	void Resolution::Initialize()
 	{
-		Events[Type::Hostile].emplace_back(GameForms::DefaultCommon, "Acheron Default", stl::enumeration{ EventData::Flag::Teleport, EventData::Flag::StartTeleport }.get());
-		Events[Type::Guard].emplace_back(GameForms::DefaultGuard, "Acheron Default Guard", stl::enumeration{ EventData::Flag::Teleport, EventData::Flag::StartTeleport }.get());
+		const auto defaultFlags = stl::enumeration{ EventData::Flag::Teleport, EventData::Flag::StartTeleport, EventData::Flag::InCombat }.get();
+		Events[Type::Hostile].emplace_back(GameForms::DefaultCommon, "Acheron Default", defaultFlags);
+		Events[Type::Guard].emplace_back(GameForms::DefaultGuard, "Acheron Default Guard", defaultFlags);
 
 		try {
 			const auto wpath = CONFIGPATH("Consequences\\Weights.yaml");
@@ -417,26 +418,32 @@ namespace Acheron
 		return false;
 	}
 
+	inline std::string MakeMCMEventKey(const EventData& e) {
+		return fmt::format("[{}{}{}] {};{};{}",
+				e.priority,
+				e.flags.all(EventData::Flag::InCombat) ? ", C" : "",
+				e.flags.all(EventData::Flag::Teleport) ? ", T" : "",
+				e.name,
+				e.weight,
+				e.quest->formID);
+	}
+
 	std::vector<std::string> Resolution::GetEvents(Type a_type)
 	{
 		std::vector<std::string> ret{};
 		for (auto&& e : Events[a_type]) {
 			if (e.flags.any(EventData::Flag::Hidden))
 				continue;
-			const auto argS = fmt::format("[{}{}{}] {};{};{}",
-					e.priority,
-					e.flags.all(EventData::Flag::InCombat) ? ", C" : "",
-					e.flags.all(EventData::Flag::Teleport) ? ", T" : "",
-					e.name,
-					e.weight,
-					e.quest->formID);
+			const auto argS = MakeMCMEventKey(e);
 			ret.push_back(argS);
 		}
-		std::sort(ret.begin(), ret.end());
+		std::sort(ret.begin(), ret.end(), [](std::string& a, std::string& b) {
+			return a[1] < b[1];
+		});
 		return ret;
 	}
 
-	void Resolution::SetEventWeight(const std::string& a_name, Type a_type, uint8_t a_weight)
+	std::string Resolution::SetEventWeight(const std::string& a_name, Type a_type, uint8_t a_weight)
 	{
 		const auto where = a_name.rfind(';');
 		const auto idstr = a_name.substr(where + 1);
@@ -444,9 +451,10 @@ namespace Acheron
 		for (auto&& e : Events[a_type]) {
 			if (e.quest->formID == id) {
 				e.weight = a_weight;
-				return;
+				return MakeMCMEventKey(e);
 			}
 		}
 		logger::warn("Unable to find event with name {} of type {}. Weight will NOT be set", a_name, a_type);
+		return "";
 	}
 }

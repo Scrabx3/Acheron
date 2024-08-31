@@ -102,12 +102,12 @@ namespace Papyrus
 		return Acheron::Resolution::GetEvents(Type(a_type));
 	}
 
-	void SetEventWeight(VM* a_vm, StackID a_stackID, RE::TESQuest*, std::string a_event, int a_type, int a_newweight)
+	std::string SetEventWeight(VM* a_vm, StackID a_stackID, RE::TESQuest*, std::string a_event, int a_type, int a_newweight)
 	{
 		using Type = Acheron::Resolution::Type;
 		if (a_type < 0 || a_type >= Type::Total) {
 			a_vm->TraceStack(fmt::format("Invalid type {}", a_type).c_str(), a_stackID);
-			return;
+			return "";
 		}
 
 		uint8_t weight = a_newweight > std::numeric_limits<uint8_t>::max() ? std::numeric_limits<uint8_t>::max() : static_cast<uint8_t>(a_newweight);

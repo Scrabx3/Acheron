@@ -131,7 +131,7 @@ namespace Acheron
 		/// @param a_name The name of the event (as given by GetEvents())
 		/// @param a_type The type the event belongs to
 		/// @param a_weight The new weight of the event
-		static void SetEventWeight(const std::string& a_name, Type a_type, uint8_t a_weight);
+		static std::string SetEventWeight(const std::string& a_name, Type a_type, uint8_t a_weight);
 
 	private:
 		static bool SelectQuestImpl(Type type, RE::Actor* a_victim, const std::vector<RE::Actor*>& a_victoires, const EventData::Flag& a_flags);
