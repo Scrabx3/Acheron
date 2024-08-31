@@ -186,9 +186,7 @@ namespace Acheron
 				return;
 			if (!HandleLethal(a_target, aggressor.actor))
 				return;
-			if (!Processing::RegisterDefeat(a_target, aggressor))
-				return;
-			RemoveDamagingSpells(a_target);
+			Processing::RegisterDefeat(a_target, aggressor);
 		}
 	}
 
@@ -239,11 +237,8 @@ namespace Acheron
 			default:
 				negate = false;
 			}
-			if (negate) {
-				if (Processing::RegisterDefeat(a_target, { aggressor, a_target })) {
-					RemoveDamagingSpells(a_target);
-					return;
-				}
+			if (negate && Processing::RegisterDefeat(a_target, { aggressor, a_target })) {
+				return;
 			} else if (a_hitData.flags.none(RE::HitData::Flag::kBlocked, RE::HitData::Flag::kBlockWithWeapon)) {
 				ValidateStrip(a_target);
 			}
@@ -281,44 +276,29 @@ namespace Acheron
 				if (!Validation::ValidatePair(target, caster.actor))
 					break;
 
-				static std::mutex cache_m{};
-				static std::deque<RE::FormID> cache{};
-				cache_m.lock();
-				if (std::ranges::contains(cache, target->formID)) {
-					const auto id = target->formID;
-					cache.push_back(id);
-					cache_m.unlock();
-					std::thread([id]() {
-						std::this_thread::sleep_for(800ms);
-						cache_m.lock();
-						cache.pop_front();
-						cache_m.unlock();
-					}).detach();
-
-					const float health = target->GetActorValue(RE::ActorValue::kHealth);
-					float dmg = base->data.secondaryAV == RE::ActorValue::kHealth ? effect.magnitude * base->data.secondAVWeight : effect.magnitude;
-					dmg += GetIncomingEffectDamage(target);	 // + GetTaperDamage(effect.magnitude, data->data);
-					AdjustByDifficultyMult(dmg, caster && caster->IsPlayerRef());
-					bool negate;
-					switch (GetProcessType(caster.actor, health <= fabs(dmg) + 2)) {
-					case ProcessType::Lethal:
-						negate = HandleLethal(target, caster.actor);
-						break;
-					case ProcessType::Any:
+				const float health = target->GetActorValue(RE::ActorValue::kHealth);
+				float dmg = base->data.secondaryAV == RE::ActorValue::kHealth ? effect.magnitude * base->data.secondAVWeight : effect.magnitude;
+				dmg += GetIncomingEffectDamage(target);	 // + GetTaperDamage(effect.magnitude, data->data);
+				AdjustByDifficultyMult(dmg, caster && caster->IsPlayerRef());
+				bool negate;
+				switch (GetProcessType(caster.actor, health <= fabs(dmg) + 2)) {
+				case ProcessType::Lethal:
+					negate = HandleLethal(target, caster.actor);
+					break;
+				case ProcessType::Any:
+					static Cache cache{ 800ms };
+					if (!cache.Debounce(target->formID)) {
 						negate = HandleExposed(target);
-						break;
-					default:
-						negate = false;
-						break;
 					}
-					if (negate && Processing::RegisterDefeat(target, caster)) {
-						RemoveDamagingSpells(target);
-						return;
-					} else if (effect.spell->GetSpellType() != RE::MagicSystem::SpellType::kEnchantment) {
-						ValidateStrip(target);
-					}
-				} else {
-					cache_m.unlock();
+					break;
+				default:
+					negate = false;
+					break;
+				}
+				if (negate && Processing::RegisterDefeat(target, caster)) {
+					return;
+				} else if (effect.spell->GetSpellType() != RE::MagicSystem::SpellType::kEnchantment) {
+					ValidateStrip(target);
 				}
 			}
 			break;
@@ -350,7 +330,7 @@ namespace Acheron
 		auto ret = _ExplosionHit(a_explosion, a_flt, a_actor);
 		if (!ret || !a_actor || !Validation::CanProcessDamage() || !IsNPC(a_actor) || a_actor->IsCommandedActor())
 			return ret;
-		if (Defeat::IsDamageImmune(a_actor) || Validation::ValidatePair(a_actor, nullptr))
+		if (Defeat::IsDamageImmune(a_actor) || !Validation::ValidatePair(a_actor, nullptr))
 			return false;
 
 		const float hp = a_actor->GetActorValue(RE::ActorValue::kHealth);
@@ -399,7 +379,7 @@ namespace Acheron
 		auto act = ref ? ref->As<RE::Actor>() : nullptr;
 		if (!act || !Defeat::IsDefeated(act))
 			return ret;
-		
+
 		a_dst = fmt::format("{} (Defeated)", a_dst);
 		return ret;
 	}
@@ -490,43 +470,6 @@ namespace Acheron
 		return magnitude * data.taperWeight * data.taperDuration / (data.taperCurve + 1);
 	}
 
-	void Hooks::RemoveDamagingSpells(RE::Actor* subject)
-	{
-		auto effects = subject->GetActiveEffectList();
-		if (!effects)
-			return;
-
-		for (auto& eff : *effects) {
-			if (!eff || eff->flags.all(RE::ActiveEffect::Flag::kDispelled))
-				continue;
-			auto base = eff->GetBaseObject();
-			if (!base)
-				continue;
-
-			const auto damaging = [](const RE::EffectSetting::EffectSettingData& data) {
-				if (data.primaryAV == RE::ActorValue::kHealth || data.secondaryAV == RE::ActorValue::kHealth)
-					return (data.flags.underlying() & 6) == 4;	// Detrimental and not Recover
-				return false;
-			};
-
-			if (damaging(base->data)) {
-				logger::info("Dispelling Spell = {}", base->GetFormID());
-				eff->Dispel(true);
-			} else if (base->data.archetype == RE::EffectSetting::Archetype::kCloak) {
-				const auto associate = base->data.associatedForm;
-				if (associate == nullptr)
-					continue;
-				const auto magicitem = associate->As<RE::MagicItem>();
-				for (auto& e : magicitem->effects) {
-					if (e && e->baseEffect && damaging(e->baseEffect->data)) {
-						eff->Dispel(true);
-						break;
-					}
-				}
-			}
-		}
-	}
-
 	void Hooks::AdjustByDifficultyMult(float& damage, const bool playerPOV)
 	{
 		const auto s = RE::GetINISetting("iDifficulty:GamePlay");
@@ -570,18 +513,9 @@ namespace Acheron
 		if (Random::draw<float>(0, 99.5f) >= Settings::fStripChance)
 			return;
 
-		static std::vector<RE::FormID> cache{};
-		if (std::find(cache.begin(), cache.end(), a_victim->formID) != cache.end())
+		static Cache cache{ 3s };
+		if (cache.Debounce(a_victim->formID))
 			return;
-
-		const auto id = a_victim->formID;
-		cache.push_back(id);
-		std::thread([id]() {
-			std::this_thread::sleep_for(3s);
-			SKSE::GetTaskInterface()->AddTask([id]() {
-				cache.erase(std::find(cache.begin(), cache.end(), id));
-			});
-		}).detach();
 
 		const auto gear = GetWornArmor(a_victim, Settings::iStrips);
 		if (gear.empty())
@@ -611,6 +545,22 @@ namespace Acheron
 			else
 				v.insert(std::make_pair(a_victim->GetFormID(), std::vector<RE::TESObjectARMO*>{ item }));
 		}
+	}
+
+	bool Hooks::Cache::Debounce(RE::FormID a_id)
+	{
+		{
+			std::scoped_lock lk{ _m };
+			if (std::ranges::contains(cache, a_id))
+				return true;
+			cache.push_back(a_id);
+		}
+		std::thread([this, a_id]() {
+			std::this_thread::sleep_for(cacheTime);
+			std::scoped_lock lk{ _m };
+			cache.pop_front();
+		});
+		return false;
 	}
 
 }	 // namespace Hooks

@@ -123,6 +123,7 @@ namespace Acheron
 		default:
 			return false;
 		}
+		RemoveDamagingSpells(a_victim);
 		return true;
 	}
 
@@ -130,7 +131,6 @@ namespace Acheron
 	{
 		if (!a_aggressor)
 			return DefeatResult::Resolution;
-
 		if (a_aggressor->IsPlayerRef())
 			return DefeatResult::Defeat;
 
@@ -139,29 +139,17 @@ namespace Acheron
 			logger::warn("Aggressor = {} has no Combat Group, Abandon", a_aggressor->GetFormID());
 			return DefeatResult::Cancel;
 		}
-		const auto validtarget = [&](const RE::ActorPtr ptr) -> bool {
-			if (!ptr)
-				return false;
-			if (!ptr->Is3DLoaded() || ptr->IsDead() || Defeat::IsDamageImmune(ptr.get()))
-				return false;
-			if (const auto p = ptr->GetMiddleHighProcess(); p && p->killQueued || ptr->IsCommandedActor())
-				return false;
-			return true;
-		};
 		std::set<RE::FormID> targets{};	 // avoid duplicates
 		for (auto& e : agrzone->targets) {
 			const auto& target = e.targetHandle.get();
-			if (!target)
+			if (!target || !target->Is3DLoaded())
 				continue;
-			if (validtarget(target))
-				targets.insert(target->formID);
-			// const auto& targetgroup = target->GetCombatGroup();
-			// if (!targetgroup)
-			// 	continue;
-			// for (const auto& member : targetgroup->members) {
-			// 	if (const auto t = member.memberHandle.get(); validtarget(t))
-			// 		targets.insert(target->formID);
-			// }
+			if (target->IsDead() || Defeat::IsDamageImmune(target.get()))
+				continue;
+			const auto p = target->GetMiddleHighProcess();
+			if (p && p->killQueued || target->IsCommandedActor())
+				continue;
+			targets.insert(target->formID);
 		}
 		logger::info("Aggressor {:X} has {} targets", a_aggressor->GetFormID(), targets.size());
 		switch (targets.size()) {
@@ -171,6 +159,44 @@ namespace Acheron
 			return DefeatResult::Resolution;
 		default:
 			return DefeatResult::Defeat;
+		}
+	}
+
+	void Processing::RemoveDamagingSpells(RE::Actor* subject)
+	{
+		auto effects = subject->GetActiveEffectList();
+		if (!effects)
+			return;
+
+		logger::info("Dispelling damaging spell effects from {:X}", subject->formID);
+		for (auto& eff : *effects) {
+			if (!eff || eff->flags.all(RE::ActiveEffect::Flag::kDispelled))
+				continue;
+			auto base = eff->GetBaseObject();
+			if (!base)
+				continue;
+
+			const auto damaging = [](const RE::EffectSetting::EffectSettingData& data) {
+				if (data.primaryAV == RE::ActorValue::kHealth || data.secondaryAV == RE::ActorValue::kHealth)
+					return (data.flags.underlying() & 6) == 4;	// Detrimental and not Recover
+				return false;
+			};
+
+			if (damaging(base->data)) {
+				logger::info("Dispelling Spell {:X}", base->GetFormID());
+				eff->Dispel(true);
+			} else if (base->data.archetype == RE::EffectSetting::Archetype::kCloak) {
+				const auto associate = base->data.associatedForm;
+				if (associate == nullptr)
+					continue;
+				const auto magicitem = associate->As<RE::MagicItem>();
+				for (auto& e : magicitem->effects) {
+					if (e && e->baseEffect && damaging(e->baseEffect->data)) {
+						eff->Dispel(true);
+						break;
+					}
+				}
+			}
 		}
 	}
 

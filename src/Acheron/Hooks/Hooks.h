@@ -8,6 +8,19 @@ namespace Acheron
 		static void Install();
 
 	private:
+		struct Cache
+		{
+			Cache(std::chrono::milliseconds a_cacheTime) :
+				cacheTime(a_cacheTime) { assert(cacheTime > 0ms); }
+
+			_NODISCARD bool Debounce(RE::FormID a_id);
+
+		private:
+			std::chrono::milliseconds cacheTime;
+			std::deque<RE::FormID> cache{};
+			std::mutex _m{};
+		};
+
 		enum class ProcessType {
 			Lethal,
 			Any,
@@ -35,7 +48,6 @@ namespace Acheron
 		static float GetTaperDamage(const float magnitude, const RE::EffectSetting::EffectSettingData& data);
 		static float GetExpectedHealthModification(RE::ActiveEffect* a_effect);
 		static float GetIncomingEffectDamage(RE::Actor* subject);
-		static void RemoveDamagingSpells(RE::Actor* subject);
 		static void CalcDamageOverTime(RE::Actor* a_target);
 		static void AdjustByDifficultyMult(float& damage, const bool playerPOV);
 		static void ValidateStrip(RE::Actor* target);
