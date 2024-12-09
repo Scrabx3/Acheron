@@ -265,7 +265,7 @@ namespace Acheron
 			return none;
 		}()) {
 		case healing:
-			if (Defeat::IsDefeated(target))
+			if (Defeat::IsDefeated(target) && Validation::AllowRescueEffect(base))
 				Defeat::RescueActor(target, true);
 			break;
 		case damaging:
@@ -320,7 +320,7 @@ namespace Acheron
 
 			for (auto& e : spell->effects) {
 				auto base = e ? e->baseEffect : nullptr;
-				if (base && base->data.flags.all(RE::EffectSetting::EffectSettingData::Flag::kDetrimental)) {
+				if (base && base->data.flags.all(RE::EffectSetting::EffectSettingData::Flag::kDetrimental) && !Validation::AllowDetrimentalEffect(base)){
 					return false;
 				}
 			}
