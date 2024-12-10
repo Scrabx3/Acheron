@@ -86,6 +86,7 @@ namespace Acheron
 					const auto root{ YAML::LoadFile(filepath) };
 					parseList(root["LocationA"], exclLocAll);
 					parseList(root["LocationT"], exclLocTp);
+					parseList(root["MagicEffect"], exclMagicEffect);
 
 					readBranch(root["Assailant"], VTarget::Assailant);
 					readBranch(root["Victim"], VTarget::Victim);
@@ -159,6 +160,16 @@ namespace Acheron
 		if (!CheckVictimID(a_victim->formID))
 			return false;
 		return CheckExclusion(VTarget::Victim, a_victim);
+	}
+
+	bool Validation::AllowRescueEffect(RE::EffectSetting* a_effect)
+	{
+		return !std::ranges::contains(exclMagicEffect, a_effect->GetFormID());
+	}
+
+	bool Validation::AllowDetrimentalEffect(RE::EffectSetting* a_effect)
+	{
+		return std::ranges::contains(exclMagicEffect, a_effect->GetFormID());
 	}
 
 	bool Validation::AllowTeleport()

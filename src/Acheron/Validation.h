@@ -26,6 +26,16 @@ namespace Acheron
 		/// @return if victim may be defeated by aggressor
 		_NODISCARD static bool ValidatePair(RE::Actor* a_victim, RE::Actor* a_aggressor);
 
+		/// @brief Validate whether an effect may be used rescue an actor
+		/// @param a_effect The base effect being applied
+		/// @return if the affect may be used to rescue an actor
+		_NODISCARD static bool AllowRescueEffect(RE::EffectSetting* a_effect);
+
+		/// @brief Validate whether a detrimental affect may be applied to a defeated actor
+		/// @param a_effect The base effect being applied
+		/// @return if the affect may be applied to a defeated actor
+		_NODISCARD static bool AllowDetrimentalEffect(RE::EffectSetting* a_effect);
+
 		/// @brief Ensure that the player can be teleported away from their current location
 		/// @return if teleporting the player is permitted
 		_NODISCARD static bool AllowTeleport();
@@ -39,6 +49,7 @@ namespace Acheron
 
 		static inline std::vector<RE::FormID> exclLocAll{};									// Always disabled locations
 		static inline std::vector<RE::FormID> exclLocTp{};									// Teleport only disabled locations
+		static inline std::vector<RE::FormID> exclMagicEffect{};				// Excluded Magic Effects
 		static inline std::vector<RE::FormID> exclNPC[VTarget::Total];			// Excluded Actor Bases
 		static inline std::vector<RE::FormID> exclRef[VTarget::Total];			// Excluded object refs
 		static inline std::vector<RE::FormID> exclRace[VTarget::Total];			// Excluded races
