@@ -403,7 +403,7 @@ namespace Acheron
 			return false;
 		}
 		const auto race = a_actor->GetRace();
-		if (race && find(a_actor->GetFormID(), exclRace)) {
+		if (race && find(race->GetFormID(), exclRace)) {
 			return false;
 		}
 		// visitor returns true on the first iteration that returns true, false otherwise
