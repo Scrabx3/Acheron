@@ -448,8 +448,10 @@ namespace Acheron
 		const auto where = a_name.rfind(';');
 		const auto idstr = a_name.substr(where + 1);
 		const auto id = static_cast<RE::FormID>(std::stoul(idstr));
+		const auto namestart = a_name.find(']') + 2;
+		const auto namelen = a_name.find(';') - namestart;
 		for (auto&& e : Events[a_type]) {
-			if (e.quest->formID == id) {
+			if ((e.quest->formID == id) && (a_name.compare(namestart, namelen, e.name) == 0)) {
 				e.weight = a_weight;
 				return MakeMCMEventKey(e);
 			}
