@@ -57,6 +57,7 @@ else()
 endif()
 
 # ---- Dependencies ----
+add_compile_definitions(SKSE_SUPPORT_XBYAK)
 if(BUILD_SKYRIMVR)
     add_compile_definitions(SKYRIMVR)
     add_compile_definitions(_CRT_SECURE_NO_WARNINGS)

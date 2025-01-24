@@ -27,13 +27,17 @@ namespace Acheron
 			None,
 		};
 
+		enum class HitResult {
+			Prevent = 0,
+			Allow = 1,
+		};
+
 		// Hooks
 		static void CompileAndRun(RE::Script* a_script, RE::ScriptCompiler* a_compiler, RE::COMPILER_NAME a_name, RE::TESObjectREFR* a_targetRef);
 		static void UpdatePlayer(RE::PlayerCharacter* player, float delta);
 		static RE::NiAVObject* Load3D(RE::Character& a_this, bool a_arg1);
 		static void UpdateCombat(RE::Character* a_this);
 		static void UpdateCharacter(RE::Character* a_this, float a_delta);
-		static void WeaponHit(RE::Actor* a_target, RE::HitData& a_hitData);
 		static void MagicHit(uint64_t* unk1, RE::ActiveEffect& effect, uint64_t* unk3, uint64_t* unk4, uint64_t* unk5);
 		static bool DoesMagicHitApply(RE::MagicTarget* a_target, RE::MagicTarget::AddTargetData* a_data);
 		static bool ExplosionHit(RE::Explosion& explosion, float* flt, RE::Actor* actor);
@@ -42,6 +46,7 @@ namespace Acheron
 		static bool GetActivateText(RE::TESNPC* a_this, RE::TESObjectREFR* a_activator, RE::BSString& a_dst);
 
 		// Hit Processing
+		static HitResult ProcessHitData(RE::Actor* a_target, RE::HitData& a_hitData);
 		static ProcessType GetProcessType(RE::Actor* a_aggressor, bool a_lethal);
 		static bool HandleLethal(RE::Actor* a_victim, RE::Actor* a_aggressor);
 		static bool HandleExposed(RE::Actor* a_victim);
@@ -57,7 +62,6 @@ namespace Acheron
 		static inline REL::Relocation<decltype(Load3D)> _Load3D;
 		static inline REL::Relocation<decltype(UpdateCombat)> _UpdateCombat;
 		static inline REL::Relocation<decltype(UpdateCharacter)> _UpdateCharacter;
-		static inline REL::Relocation<decltype(WeaponHit)> _WeaponHit;
 		static inline REL::Relocation<decltype(MagicHit)> _MagicHit;
 		static inline REL::Relocation<decltype(DoesMagicHitApply)> _DoesMagicHitApply;
 		static inline REL::Relocation<decltype(ExplosionHit)> _ExplosionHit;

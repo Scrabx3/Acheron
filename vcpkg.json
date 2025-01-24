@@ -9,7 +9,8 @@
     "simpleini",
     "magic-enum",
     "yaml-cpp",
-    "nlohmann-json"
+    "nlohmann-json",
+    "xbyak"
   ],
   "overrides": [
     {

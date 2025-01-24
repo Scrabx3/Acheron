@@ -6,17 +6,52 @@
 #include "Acheron/Hooks/Processing.h"
 #include "Acheron/Validation.h"
 
+#include <xbyak/xbyak.h>
+
 using Archetype = RE::EffectArchetypes::ArchetypeID;
 
 namespace Acheron
 {
 	void Hooks::Install()
 	{
-		SKSE::AllocTrampoline(static_cast<size_t>(1) << 7);
+		REL::Relocation<std::uintptr_t> phd{ RELID(37633, 38586), OFFSET(0x76, 0x7e) };
+		// MOV R13,RDX	; HitData* a_hitData
+		// MOV R15,RCX	; Actor* a_target
+		// ...
+		// CMP qword ptr [RCX + 0xf8],0x0  ; if (a_target->currentProcess == 0)
+		// JZ LAB_1406b8d42                ; 	return;
+		struct ProcessHitData_Patch : Xbyak::CodeGenerator {
+			ProcessHitData_Patch(size_t a_retAddr) {
+				Xbyak::Label retLbl;
+				Xbyak::Label retPtr;
+				Xbyak::Label callPtr;
+
+				cmp(qword[rcx + OFFSET(0xf0, 0xf8)], 0);
+				jz(retLbl);
+
+				call(ptr[rip + callPtr]);
+				test(al, al);
+
+				mov(rcx, OFFSET(r14, r15));
+				mov(rdx, OFFSET(r15, r13));
+				L(retLbl);
+				jmp(ptr[rip + retPtr]);
+
+				L(callPtr);
+				dq(std::uintptr_t(&Hooks::ProcessHitData));
+
+				L(retPtr);
+				dq(a_retAddr);
+			}
+		};
+		ProcessHitData_Patch _ProcessHitData(phd.address() + 8);
+		_ProcessHitData.ready();
+
+		SKSE::AllocTrampoline((static_cast<size_t>(1) << 7) + _ProcessHitData.getSize());
 		auto& trampoline = SKSE::GetTrampoline();
 		// ==================================================
-		REL::Relocation<std::uintptr_t> wh{ RELID(37673, 38627), OFFSET(0x3C0, 0x4a8) };
-		_WeaponHit = trampoline.write_call<5>(wh.address(), WeaponHit);
+		trampoline.write_branch<5>(phd.address(), trampoline.allocate(_ProcessHitData));
+		REL::safe_fill(phd.address() + 5, 0x90, 3);
 		// ==================================================
 		REL::Relocation<std::uintptr_t> magichit{ RELID(33763, 34547), OFFSET(0x52F, 0x7B1) };
 		_MagicHit = trampoline.write_call<5>(magichit.address(), MagicHit);
@@ -190,12 +225,16 @@ namespace Acheron
 		}
 	}
 
-	void Hooks::WeaponHit(RE::Actor* a_target, RE::HitData& a_hitData)
+	Hooks::HitResult Hooks::ProcessHitData(RE::Actor* a_target, RE::HitData& a_hitData)
 	{
+		// If hooked function will queue itself, process the queued execution instead
+		if (RE::TaskQueueInterface::ShouldUseTaskQueue())
+			return HitResult::Allow;
+
 		if (!a_target || a_target->IsCommandedActor() || !IsNPC(a_target))
-			return _WeaponHit(a_target, a_hitData);
+			return HitResult::Allow;
 		if (Defeat::IsDamageImmune(a_target))
-			return;
+			return HitResult::Prevent;
 
 		const auto aggressorPtr = a_hitData.aggressor.get();
 		if (aggressorPtr && Validation::CanProcessDamage() && Validation::ValidatePair(a_target, aggressorPtr.get())) {
@@ -238,12 +277,12 @@ namespace Acheron
 				negate = false;
 			}
 			if (negate && Processing::RegisterDefeat(a_target, { aggressor, a_target })) {
-				return;
+				return HitResult::Prevent;
 			} else if (a_hitData.flags.none(RE::HitData::Flag::kBlocked, RE::HitData::Flag::kBlockWithWeapon)) {
 				ValidateStrip(a_target);
 			}
 		}
-		return _WeaponHit(a_target, a_hitData);
+		return HitResult::Allow;
 	}
 
 	void Hooks::MagicHit(uint64_t* unk1, RE::ActiveEffect& effect, uint64_t* unk3, uint64_t* unk4, uint64_t* unk5)
