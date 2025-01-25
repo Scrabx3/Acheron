@@ -241,7 +241,7 @@ namespace Acheron
 			const auto aggressor = aggressorPtr.get();
 			const float hp = a_target->GetActorValue(RE::ActorValue::kHealth);
 			auto dmg = a_hitData.totalDamage + fabs(GetIncomingEffectDamage(a_target));
-			AdjustByDifficultyMult(dmg, aggressor->IsPlayerRef());
+			AdjustByDifficultyMult(dmg, a_target->IsPlayerRef());
 			bool negate;
 			switch (GetProcessType(aggressor, hp <= dmg)) {
 			case ProcessType::Lethal:
@@ -318,7 +318,7 @@ namespace Acheron
 				const float health = target->GetActorValue(RE::ActorValue::kHealth);
 				float dmg = base->data.secondaryAV == RE::ActorValue::kHealth ? effect.magnitude * base->data.secondAVWeight : effect.magnitude;
 				dmg += GetIncomingEffectDamage(target);	 // + GetTaperDamage(effect.magnitude, data->data);
-				AdjustByDifficultyMult(dmg, caster && caster->IsPlayerRef());
+				AdjustByDifficultyMult(dmg, target->IsPlayerRef());
 				bool negate;
 				switch (GetProcessType(caster.actor, health <= fabs(dmg) + 2)) {
 				case ProcessType::Lethal:
@@ -378,7 +378,7 @@ namespace Acheron
 
 		const float hp = a_actor->GetActorValue(RE::ActorValue::kHealth);
 		auto effectdmg = fabs(GetIncomingEffectDamage(a_actor));
-		AdjustByDifficultyMult(effectdmg, false);
+		AdjustByDifficultyMult(effectdmg, a_actor->IsPlayerRef());
 		if (a_explosion.damage + effectdmg < hp) {
 			return ret;
 		}
@@ -519,7 +519,7 @@ namespace Acheron
 		if (s->GetType() != RE::Setting::Type::kSignedInteger)
 			return;
 
-		std::string diff{ "fDiffMultHP"s + (playerPOV ? "ByPC"s : "ToPC"s) };
+		std::string diff{ "fDiffMultHP"s + (playerPOV ? "ToPC"s : "ByPC"s) };
 		switch (s->GetSInt()) {
 		case 0:
 			diff.append("VE");
