@@ -236,51 +236,55 @@ namespace Acheron
 		if (Defeat::IsDamageImmune(a_target))
 			return HitResult::Prevent;
 
+		if (!Validation::CanProcessDamage())
+			return HitResult::Allow;
+
 		const auto aggressorPtr = a_hitData.aggressor.get();
-		if (aggressorPtr && Validation::CanProcessDamage() && Validation::ValidatePair(a_target, aggressorPtr.get())) {
-			const auto aggressor = aggressorPtr.get();
-			const float hp = a_target->GetActorValue(RE::ActorValue::kHealth);
-			auto dmg = a_hitData.totalDamage + fabs(GetIncomingEffectDamage(a_target));
-			AdjustByDifficultyMult(dmg, a_target->IsPlayerRef());
-			bool negate;
-			switch (GetProcessType(aggressor, hp <= dmg)) {
-			case ProcessType::Lethal:
-				negate = HandleLethal(a_target, aggressor);
-				break;
-			case ProcessType::Any:
-				negate = [&]() {
-					if (a_hitData.stagger == 0 || !Settings::bTraumaEnabled)
-						return false;
-					// f(x,y) = (x^2 * (1 + d * (1 - y))) / 64; with x in (-inf, inf), y in [0; 1], d in [0; inf)
-					const auto y = Settings::bTraumaHealth ? GetAVPercent(a_target, RE::ActorValue::kHealth) : 0.7;
-					const auto f = (powf(a_hitData.stagger, 2) * (1 + Settings::fTraumaMult * (1 - y))) / 64;
-					const auto random = Random::draw<float>(0.1f, 0.999f);
-					if (random < f)
-						return true;
-					if (Settings::fTraumeBackAttack <= 1)
-						return false;
-					const auto head = a_target->GetNodeByName("NPC Head [Head]");
-					if (head) {
-						const auto& matrix = head->world.rotate;
-						RE::NiPoint2 vecTarget{ matrix.entry[0][1], matrix.entry[0][0] };
-						RE::NiPoint2 vecRelative{ aggressor->GetPositionX() - a_hitData.hitPosition.x, aggressor->GetPositionY() - a_hitData.hitPosition.y };
-						vecRelative.Unitize();
-						const auto res = vecTarget.Dot(vecRelative);
-						if (res < -0.92f) {	 // 157°
-							return random < f * Settings::fTraumeBackAttack;
-						}
-					}
+		const auto aggressor = aggressorPtr ? aggressorPtr.get() : nullptr;
+		if (!Validation::ValidatePair(a_target, aggressor))
+			return HitResult::Allow;
+
+		const float hp = a_target->GetActorValue(RE::ActorValue::kHealth);
+		auto dmg = a_hitData.totalDamage + fabs(GetIncomingEffectDamage(a_target));
+		AdjustByDifficultyMult(dmg, a_target->IsPlayerRef());
+		bool negate;
+		switch (GetProcessType(aggressor, hp <= dmg)) {
+		case ProcessType::Lethal:
+			negate = HandleLethal(a_target, aggressor);
+			break;
+		case ProcessType::Any:
+			negate = [&]() {
+				if (a_hitData.stagger == 0 || !Settings::bTraumaEnabled)
 					return false;
-				}() || HandleExposed(a_target);
-				break;
-			default:
-				negate = false;
-			}
-			if (negate && Processing::RegisterDefeat(a_target, { aggressor, a_target })) {
-				return HitResult::Prevent;
-			} else if (a_hitData.flags.none(RE::HitData::Flag::kBlocked, RE::HitData::Flag::kBlockWithWeapon)) {
-				ValidateStrip(a_target);
-			}
+				// f(x,y) = (x^2 * (1 + d * (1 - y))) / 64; with x in (-inf, inf), y in [0; 1], d in [0; inf)
+				const auto y = Settings::bTraumaHealth ? GetAVPercent(a_target, RE::ActorValue::kHealth) : 0.7;
+				const auto f = (powf(a_hitData.stagger, 2) * (1 + Settings::fTraumaMult * (1 - y))) / 64;
+				const auto random = Random::draw<float>(0.1f, 0.999f);
+				if (random < f)
+					return true;
+				if (Settings::fTraumeBackAttack <= 1)
+					return false;
+				const auto head = a_target->GetNodeByName("NPC Head [Head]");
+				if (head) {
+					const auto& matrix = head->world.rotate;
+					RE::NiPoint2 vecTarget{ matrix.entry[0][1], matrix.entry[0][0] };
+					RE::NiPoint2 vecRelative{ aggressor->GetPositionX() - a_hitData.hitPosition.x, aggressor->GetPositionY() - a_hitData.hitPosition.y };
+					vecRelative.Unitize();
+					const auto res = vecTarget.Dot(vecRelative);
+					if (res < -0.92f) {	 // 157°
+						return random < f * Settings::fTraumeBackAttack;
+					}
+				}
+				return false;
+			}() || HandleExposed(a_target);
+			break;
+		default:
+			negate = false;
+		}
+		if (negate && Processing::RegisterDefeat(a_target, { aggressor, a_target })) {
+			return HitResult::Prevent;
+		} else if (a_hitData.flags.none(RE::HitData::Flag::kBlocked, RE::HitData::Flag::kBlockWithWeapon)) {
+			ValidateStrip(a_target);
 		}
 		return HitResult::Allow;
 	}
