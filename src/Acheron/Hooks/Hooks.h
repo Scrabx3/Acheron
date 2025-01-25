@@ -40,7 +40,6 @@ namespace Acheron
 		static void UpdateCharacter(RE::Character* a_this, float a_delta);
 		static void MagicHit(uint64_t* unk1, RE::ActiveEffect& effect, uint64_t* unk3, uint64_t* unk4, uint64_t* unk5);
 		static bool DoesMagicHitApply(RE::MagicTarget* a_target, RE::MagicTarget::AddTargetData* a_data);
-		static bool ExplosionHit(RE::Explosion& explosion, float* flt, RE::Actor* actor);
 		static float FallAndPhysicsDamage(RE::Actor* a_this, float a_fallDistance, float a_defaultMult);
 		static uint8_t* DoDetect(RE::Actor* viewer, RE::Actor* target, int32_t& detectval, uint8_t& unk04, uint8_t& unk05, uint32_t& unk06, RE::NiPoint3& pos, float& unk08, float& unk09, float& unk10);
 		static bool GetActivateText(RE::TESNPC* a_this, RE::TESObjectREFR* a_activator, RE::BSString& a_dst);
@@ -64,7 +63,6 @@ namespace Acheron
 		static inline REL::Relocation<decltype(UpdateCharacter)> _UpdateCharacter;
 		static inline REL::Relocation<decltype(MagicHit)> _MagicHit;
 		static inline REL::Relocation<decltype(DoesMagicHitApply)> _DoesMagicHitApply;
-		static inline REL::Relocation<decltype(ExplosionHit)> _ExplosionHit;
 		static inline REL::Relocation<decltype(DoDetect)> _DoDetect;
 		static inline REL::Relocation<decltype(FallAndPhysicsDamage)> _FallAndPhysicsDamage;
 		static inline REL::Relocation<decltype(GetActivateText)> _GetActivateText;

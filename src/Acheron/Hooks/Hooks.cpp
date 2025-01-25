@@ -59,9 +59,6 @@ namespace Acheron
 		REL::Relocation<std::uintptr_t> mha{ RELID(33742, 34526), OFFSET(0x1E8, 0x20B) };
 		_DoesMagicHitApply = trampoline.write_call<5>(mha.address(), DoesMagicHitApply);
 		// ==================================================
-		REL::Relocation<std::uintptr_t> explH{ RELID(42677, 43849), OFFSET(0x38C, 0x3C2) };
-		_ExplosionHit = trampoline.write_call<5>(explH.address(), ExplosionHit);
-		// ==================================================
 		REL::Relocation<std::uintptr_t> det{ RELID(41659, 42742), OFFSET(0x526, 0x67B) };
 		_DoDetect = trampoline.write_call<5>(det.address(), DoDetect);
 		// ==================================================
@@ -369,27 +366,6 @@ namespace Acheron
 			}
 		}
 		return _DoesMagicHitApply(a_target, a_data);
-	}
-
-	// return false if hit should not be processed
-	bool Hooks::ExplosionHit(RE::Explosion& a_explosion, float* a_flt, RE::Actor* a_actor)
-	{
-		auto ret = _ExplosionHit(a_explosion, a_flt, a_actor);
-		if (!ret || !a_actor || !Validation::CanProcessDamage() || !IsNPC(a_actor) || a_actor->IsCommandedActor())
-			return ret;
-		if (Defeat::IsDamageImmune(a_actor) || !Validation::ValidatePair(a_actor, nullptr))
-			return false;
-
-		const float hp = a_actor->GetActorValue(RE::ActorValue::kHealth);
-		auto effectdmg = fabs(GetIncomingEffectDamage(a_actor));
-		AdjustByDifficultyMult(effectdmg, a_actor->IsPlayerRef());
-		if (a_explosion.damage + effectdmg < hp) {
-			return ret;
-		}
-		auto owner = a_explosion.GetActorOwner();
-		auto ref = owner ? owner->AsReference() : nullptr;
-		auto aggressor = Processing::AggressorInfo(ref ? ref->As<RE::Actor>() : nullptr, a_actor);
-		return Processing::RegisterDefeat(a_actor, aggressor) ? false : ret;
 	}
 
 	float Hooks::FallAndPhysicsDamage(RE::Actor* a_this, float a_fallDistance, float a_defaultMult)
