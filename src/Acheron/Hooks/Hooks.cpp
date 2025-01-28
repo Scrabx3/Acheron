@@ -6,26 +6,58 @@
 #include "Acheron/Hooks/Processing.h"
 #include "Acheron/Validation.h"
 
+#include <xbyak/xbyak.h>
+
 using Archetype = RE::EffectArchetypes::ArchetypeID;
 
 namespace Acheron
 {
 	void Hooks::Install()
 	{
-		SKSE::AllocTrampoline(static_cast<size_t>(1) << 7);
+		REL::Relocation<std::uintptr_t> phd{ RELID(37633, 38586), OFFSET(0x76, 0x7e) };
+		// MOV R13,RDX	; HitData* a_hitData
+		// MOV R15,RCX	; Actor* a_target
+		// ...
+		// CMP qword ptr [RCX + 0xf8],0x0  ; if (a_target->currentProcess == 0)
+		// JZ LAB_1406b8d42                ; 	return;
+		struct ProcessHitData_Patch : Xbyak::CodeGenerator {
+			ProcessHitData_Patch(size_t a_retAddr) {
+				Xbyak::Label retLbl;
+				Xbyak::Label retPtr;
+				Xbyak::Label callPtr;
+
+				cmp(qword[rcx + OFFSET(0xf0, 0xf8)], 0);
+				jz(retLbl);
+
+				call(ptr[rip + callPtr]);
+				test(al, al);
+
+				mov(rcx, OFFSET(r14, r15));
+				mov(rdx, OFFSET(r15, r13));
+				L(retLbl);
+				jmp(ptr[rip + retPtr]);
+
+				L(callPtr);
+				dq(std::uintptr_t(&Hooks::ProcessHitData));
+
+				L(retPtr);
+				dq(a_retAddr);
+			}
+		};
+		ProcessHitData_Patch _ProcessHitData(phd.address() + 8);
+		_ProcessHitData.ready();
+
+		SKSE::AllocTrampoline((static_cast<size_t>(1) << 7) + _ProcessHitData.getSize());
 		auto& trampoline = SKSE::GetTrampoline();
 		// ==================================================
-		REL::Relocation<std::uintptr_t> wh{ RELID(37673, 38627), OFFSET(0x3C0, 0x4a8) };
-		_WeaponHit = trampoline.write_call<5>(wh.address(), WeaponHit);
+		trampoline.write_branch<5>(phd.address(), trampoline.allocate(_ProcessHitData));
+		REL::safe_fill(phd.address() + 5, 0x90, 3);
 		// ==================================================
 		REL::Relocation<std::uintptr_t> magichit{ RELID(33763, 34547), OFFSET(0x52F, 0x7B1) };
 		_MagicHit = trampoline.write_call<5>(magichit.address(), MagicHit);
 		// ==================================================
 		REL::Relocation<std::uintptr_t> mha{ RELID(33742, 34526), OFFSET(0x1E8, 0x20B) };
 		_DoesMagicHitApply = trampoline.write_call<5>(mha.address(), DoesMagicHitApply);
-		// ==================================================
-		REL::Relocation<std::uintptr_t> explH{ RELID(42677, 43849), OFFSET(0x38C, 0x3C2) };
-		_ExplosionHit = trampoline.write_call<5>(explH.address(), ExplosionHit);
 		// ==================================================
 		REL::Relocation<std::uintptr_t> det{ RELID(41659, 42742), OFFSET(0x526, 0x67B) };
 		_DoDetect = trampoline.write_call<5>(det.address(), DoDetect);
@@ -190,60 +222,68 @@ namespace Acheron
 		}
 	}
 
-	void Hooks::WeaponHit(RE::Actor* a_target, RE::HitData& a_hitData)
+	Hooks::HitResult Hooks::ProcessHitData(RE::Actor* a_target, RE::HitData& a_hitData)
 	{
+		// If hooked function will queue itself, process the queued execution instead
+		if (RE::TaskQueueInterface::ShouldUseTaskQueue())
+			return HitResult::Allow;
+
 		if (!a_target || a_target->IsCommandedActor() || !IsNPC(a_target))
-			return _WeaponHit(a_target, a_hitData);
+			return HitResult::Allow;
 		if (Defeat::IsDamageImmune(a_target))
-			return;
+			return HitResult::Prevent;
+
+		if (!Validation::CanProcessDamage())
+			return HitResult::Allow;
 
 		const auto aggressorPtr = a_hitData.aggressor.get();
-		if (aggressorPtr && Validation::CanProcessDamage() && Validation::ValidatePair(a_target, aggressorPtr.get())) {
-			const auto aggressor = aggressorPtr.get();
-			const float hp = a_target->GetActorValue(RE::ActorValue::kHealth);
-			auto dmg = a_hitData.totalDamage + fabs(GetIncomingEffectDamage(a_target));
-			AdjustByDifficultyMult(dmg, aggressor->IsPlayerRef());
-			bool negate;
-			switch (GetProcessType(aggressor, hp <= dmg)) {
-			case ProcessType::Lethal:
-				negate = HandleLethal(a_target, aggressor);
-				break;
-			case ProcessType::Any:
-				negate = [&]() {
-					if (a_hitData.stagger == 0 || !Settings::bTraumaEnabled)
-						return false;
-					// f(x,y) = (x^2 * (1 + d * (1 - y))) / 64; with x in (-inf, inf), y in [0; 1], d in [0; inf)
-					const auto y = Settings::bTraumaHealth ? GetAVPercent(a_target, RE::ActorValue::kHealth) : 0.7;
-					const auto f = (powf(a_hitData.stagger, 2) * (1 + Settings::fTraumaMult * (1 - y))) / 64;
-					const auto random = Random::draw<float>(0.1f, 0.999f);
-					if (random < f)
-						return true;
-					if (Settings::fTraumeBackAttack <= 1)
-						return false;
-					const auto head = a_target->GetNodeByName("NPC Head [Head]");
-					if (head) {
-						const auto& matrix = head->world.rotate;
-						RE::NiPoint2 vecTarget{ matrix.entry[0][1], matrix.entry[0][0] };
-						RE::NiPoint2 vecRelative{ aggressor->GetPositionX() - a_hitData.hitPosition.x, aggressor->GetPositionY() - a_hitData.hitPosition.y };
-						vecRelative.Unitize();
-						const auto res = vecTarget.Dot(vecRelative);
-						if (res < -0.92f) {	 // 157°
-							return random < f * Settings::fTraumeBackAttack;
-						}
-					}
+		const auto aggressor = aggressorPtr ? aggressorPtr.get() : nullptr;
+		if (!Validation::ValidatePair(a_target, aggressor))
+			return HitResult::Allow;
+
+		const float hp = a_target->GetActorValue(RE::ActorValue::kHealth);
+		auto dmg = a_hitData.totalDamage + fabs(GetIncomingEffectDamage(a_target));
+		AdjustByDifficultyMult(dmg, a_target->IsPlayerRef());
+		bool negate;
+		switch (GetProcessType(aggressor, hp <= dmg)) {
+		case ProcessType::Lethal:
+			negate = HandleLethal(a_target, aggressor);
+			break;
+		case ProcessType::Any:
+			negate = [&]() {
+				if (a_hitData.stagger == 0 || !Settings::bTraumaEnabled)
 					return false;
-				}() || HandleExposed(a_target);
-				break;
-			default:
-				negate = false;
-			}
-			if (negate && Processing::RegisterDefeat(a_target, { aggressor, a_target })) {
-				return;
-			} else if (a_hitData.flags.none(RE::HitData::Flag::kBlocked, RE::HitData::Flag::kBlockWithWeapon)) {
-				ValidateStrip(a_target);
-			}
+				// f(x,y) = (x^2 * (1 + d * (1 - y))) / 64; with x in (-inf, inf), y in [0; 1], d in [0; inf)
+				const auto y = Settings::bTraumaHealth ? GetAVPercent(a_target, RE::ActorValue::kHealth) : 0.7;
+				const auto f = (powf(a_hitData.stagger, 2) * (1 + Settings::fTraumaMult * (1 - y))) / 64;
+				const auto random = Random::draw<float>(0.1f, 0.999f);
+				if (random < f)
+					return true;
+				if (Settings::fTraumeBackAttack <= 1)
+					return false;
+				const auto head = a_target->GetNodeByName("NPC Head [Head]");
+				if (head) {
+					const auto& matrix = head->world.rotate;
+					RE::NiPoint2 vecTarget{ matrix.entry[0][1], matrix.entry[0][0] };
+					RE::NiPoint2 vecRelative{ aggressor->GetPositionX() - a_hitData.hitPosition.x, aggressor->GetPositionY() - a_hitData.hitPosition.y };
+					vecRelative.Unitize();
+					const auto res = vecTarget.Dot(vecRelative);
+					if (res < -0.92f) {	 // 157°
+						return random < f * Settings::fTraumeBackAttack;
+					}
+				}
+				return false;
+			}() || HandleExposed(a_target);
+			break;
+		default:
+			negate = false;
 		}
-		return _WeaponHit(a_target, a_hitData);
+		if (negate && Processing::RegisterDefeat(a_target, { aggressor, a_target })) {
+			return HitResult::Prevent;
+		} else if (a_hitData.flags.none(RE::HitData::Flag::kBlocked, RE::HitData::Flag::kBlockWithWeapon)) {
+			ValidateStrip(a_target);
+		}
+		return HitResult::Allow;
 	}
 
 	void Hooks::MagicHit(uint64_t* unk1, RE::ActiveEffect& effect, uint64_t* unk3, uint64_t* unk4, uint64_t* unk5)
@@ -279,7 +319,7 @@ namespace Acheron
 				const float health = target->GetActorValue(RE::ActorValue::kHealth);
 				float dmg = base->data.secondaryAV == RE::ActorValue::kHealth ? effect.magnitude * base->data.secondAVWeight : effect.magnitude;
 				dmg += GetIncomingEffectDamage(target);	 // + GetTaperDamage(effect.magnitude, data->data);
-				AdjustByDifficultyMult(dmg, caster && caster->IsPlayerRef());
+				AdjustByDifficultyMult(dmg, target->IsPlayerRef());
 				bool negate;
 				switch (GetProcessType(caster.actor, health <= fabs(dmg) + 2)) {
 				case ProcessType::Lethal:
@@ -326,27 +366,6 @@ namespace Acheron
 			}
 		}
 		return _DoesMagicHitApply(a_target, a_data);
-	}
-
-	// return false if hit should not be processed
-	bool Hooks::ExplosionHit(RE::Explosion& a_explosion, float* a_flt, RE::Actor* a_actor)
-	{
-		auto ret = _ExplosionHit(a_explosion, a_flt, a_actor);
-		if (!ret || !a_actor || !Validation::CanProcessDamage() || !IsNPC(a_actor) || a_actor->IsCommandedActor())
-			return ret;
-		if (Defeat::IsDamageImmune(a_actor) || !Validation::ValidatePair(a_actor, nullptr))
-			return false;
-
-		const float hp = a_actor->GetActorValue(RE::ActorValue::kHealth);
-		auto effectdmg = fabs(GetIncomingEffectDamage(a_actor));
-		AdjustByDifficultyMult(effectdmg, false);
-		if (a_explosion.damage + effectdmg < hp) {
-			return ret;
-		}
-		auto owner = a_explosion.GetActorOwner();
-		auto ref = owner ? owner->AsReference() : nullptr;
-		auto aggressor = Processing::AggressorInfo(ref ? ref->As<RE::Actor>() : nullptr, a_actor);
-		return Processing::RegisterDefeat(a_actor, aggressor) ? false : ret;
 	}
 
 	float Hooks::FallAndPhysicsDamage(RE::Actor* a_this, float a_fallDistance, float a_defaultMult)
@@ -480,7 +499,7 @@ namespace Acheron
 		if (s->GetType() != RE::Setting::Type::kSignedInteger)
 			return;
 
-		std::string diff{ "fDiffMultHP"s + (playerPOV ? "ByPC"s : "ToPC"s) };
+		std::string diff{ "fDiffMultHP"s + (playerPOV ? "ToPC"s : "ByPC"s) };
 		switch (s->GetSInt()) {
 		case 0:
 			diff.append("VE");
