@@ -201,7 +201,8 @@ namespace Acheron
 
 			if (!a_target->IsPlayerRef()) {
 				const auto caster = effect->caster.get();
-				if (caster && caster->IsPlayerRef() && !IsHunter(caster.get())) {
+				const auto player = RE::PlayerCharacter::GetSingleton();
+				if (caster && UsesHunterPride(caster.get()) && !IsHunter(player)) {
 					inc_damage = 0.0f;
 					break;
 				}
