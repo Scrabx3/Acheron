@@ -300,6 +300,8 @@ namespace Acheron
 			none
 		};
 		switch ([&]() {
+			if (base->HasArchetype(RE::EffectArchetype::kPeakValueModifier))
+				return none;
 			if (effect.magnitude != 0 && (base->data.primaryAV == RE::ActorValue::kHealth || base->data.secondaryAV == RE::ActorValue::kHealth))
 				return effect.magnitude < 0 ? damaging : healing;
 			return none;
@@ -473,6 +475,8 @@ namespace Acheron
 	{
 		const auto base = a_effect->GetBaseObject();
 		if (!base || base->data.flags.any(RE::EffectSetting::EffectSettingData::Flag::kRecover))
+			return 0.0f;
+		if (base->HasArchetype(RE::EffectArchetype::kPeakValueModifier))
 			return 0.0f;
 		// Damage done every second by the effect
 		const auto getmagnitude = [&]() -> float {
