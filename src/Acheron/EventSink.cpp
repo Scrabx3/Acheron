@@ -56,17 +56,16 @@ namespace Acheron
 		if (!a_event || a_event->newState != RE::ACTOR_COMBAT_STATE::kNone)
 			return EventResult::kContinue;
 
+		const auto worn = ExtractCachedArmor(a_event->actor->GetFormID());
 		const auto actor = a_event->actor->As<RE::Actor>();
 		if (actor && actor->Is3DLoaded() && !actor->IsDead() && !Defeat::IsDefeated(actor)) {
-			auto w = worn_cache.find(actor->GetFormID());
-			if (w != worn_cache.end()) {
+			if (!worn.empty()) {
 				const auto em = RE::ActorEquipManager::GetSingleton();
-				for (auto& gear : w->second) {
+				for (auto& gear : worn) {
 					em->EquipObject(actor, gear);
 				}
 			}
 		}
-		worn_cache.erase(a_event->actor->GetFormID());
 		return EventResult::kContinue;
 	}
 
@@ -181,6 +180,20 @@ namespace Acheron
 			}
 		}
 		return EventResult::kContinue;
+	}
+
+	void EventHandler::CacheWornArmor(const RE::FormID a_form, RE::TESObjectARMO* a_armor)
+	{
+		std::scoped_lock _lock{cache_lock};
+		worn_cache[a_form].push_back(a_armor);
+	}
+
+	std::vector<RE::TESObjectARMO*> EventHandler::ExtractCachedArmor(const RE::FormID a_form)
+	{
+		std::scoped_lock _lock{cache_lock};
+		if (auto node = worn_cache.extract(a_form); !node.empty())
+			return std::move(node.mapped());
+		return {};
 	}
 
 }	 // namespace Acheron
