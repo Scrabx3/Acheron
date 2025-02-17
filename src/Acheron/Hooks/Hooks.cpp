@@ -294,6 +294,7 @@ namespace Acheron
 		if (!target || !base || target->IsCommandedActor() || !IsNPC(target))
 			return _MagicHit(unk1, effect, unk3, unk4, unk5);
 
+		bool dispel = false;
 		enum
 		{
 			damaging,
@@ -312,8 +313,10 @@ namespace Acheron
 				Defeat::RescueActor(target, true);
 			break;
 		case damaging:
-			if (Defeat::IsDamageImmune(target))
-				return;
+			if (Defeat::IsDamageImmune(target)) {
+				dispel = true;
+				break;
+			}
 			if (Validation::CanProcessDamage()) {
 				auto caster = Processing::AggressorInfo(effect.caster.get().get(), target);
 				if (!Validation::ValidatePair(target, caster.actor))
@@ -343,14 +346,16 @@ namespace Acheron
 					break;
 				}
 				if (negate && Processing::RegisterDefeat(target, caster)) {
-					return;
+					dispel = true;
 				} else if (effect.spell->GetSpellType() != RE::MagicSystem::SpellType::kEnchantment) {
 					ValidateStrip(target);
 				}
 			}
 			break;
 		}
-		return _MagicHit(unk1, effect, unk3, unk4, unk5);
+		if (dispel)
+			effect.Dispel(true);
+		_MagicHit(unk1, effect, unk3, unk4, unk5);
 	}
 
 	bool Hooks::DoesMagicHitApply(RE::MagicTarget* a_target, RE::MagicTarget::AddTargetData* a_data)
