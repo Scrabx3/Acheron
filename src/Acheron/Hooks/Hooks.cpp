@@ -251,6 +251,10 @@ namespace Acheron
 			negate = HandleLethal(a_target, aggressor);
 			break;
 		case ProcessType::Any:
+			if (!aggressor || a_hitData.totalDamage < 0.0001) {
+				negate = false;
+				break;
+			}
 			negate = [&]() {
 				if (a_hitData.stagger == 0 || !Settings::bTraumaEnabled)
 					return false;
