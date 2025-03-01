@@ -12,7 +12,7 @@ set(PAPYRUS_VR "14vr")
 # ---- Project ----
 project(
     Acheron
-    VERSION 1.5.3.1
+    VERSION 1.5.4.0
     LANGUAGES CXX
 )
 
@@ -47,7 +47,7 @@ macro(set_from_environment VARIABLE)
 endmacro()
 
 set_from_environment(VCPKG_ROOT)
-set_from_environment(MODS_FOLDER)
+set_from_environment(XSE_TES5_MODS_PATH)
 
 if(DEFINED VCPKG_ROOT)
     set(CMAKE_TOOLCHAIN_FILE "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
@@ -62,17 +62,17 @@ if(BUILD_SKYRIMVR)
     add_compile_definitions(SKYRIMVR)
     add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
     add_subdirectory("./lib/CommonLibVR" CommonLibSSE)
-    set(SkyrimPath ${MODS_FOLDER}/${PAPYRUS_ROOT}/${PAPYRUS_VR})
+    set(SkyrimPath ${XSE_TES5_MODS_PATH}/${PAPYRUS_ROOT}/${PAPYRUS_VR})
     set(CommonLibName "CommonLibVR")
     message("Building Skyrim VR")
 else()
     if(BUILD_SKYRIMAE)
         add_compile_definitions(SKYRIM_AE)
         add_compile_definitions(SKYRIM_SUPPORT_AE)
-        set(SkyrimPath ${MODS_FOLDER}/${PAPYRUS_ROOT}/${PAPYRUS_AE})
+        set(SkyrimPath ${XSE_TES5_MODS_PATH}/${PAPYRUS_ROOT}/${PAPYRUS_AE})
         message("Building Skyrim 1.6")
     else()
-        set(SkyrimPath ${MODS_FOLDER}/${PAPYRUS_ROOT}/${PAPYRUS_SE})
+        set(SkyrimPath ${XSE_TES5_MODS_PATH}/${PAPYRUS_ROOT}/${PAPYRUS_SE})
         message("Building Skyrim 1.5")
     endif()
 

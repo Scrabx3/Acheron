@@ -62,8 +62,8 @@ namespace Acheron
 		REL::Relocation<std::uintptr_t> det{ RELID(41659, 42742), OFFSET(0x526, 0x67B) };
 		_DoDetect = trampoline.write_call<5>(det.address(), DoDetect);
 		// ==================================================
-		REL::Relocation<std::uintptr_t> console{ RELID(52065, 52952), OFFSET(0xE2, 0x52) };
-		_CompileAndRun = trampoline.write_call<5>(console.address(), CompileAndRun);
+		// REL::Relocation<std::uintptr_t> console{ RELID(52065, 52952), OFFSET(0xE2, 0x52) };
+		// _CompileAndRun = trampoline.write_call<5>(console.address(), CompileAndRun);
 		// ==================================================
 		REL::Relocation<std::uintptr_t> ragdoll_dmg{ RELOCATION_ID(36346, 37336), 0x35 };
 		_FallAndPhysicsDamage = trampoline.write_call<5>(ragdoll_dmg.address(), FallAndPhysicsDamage);

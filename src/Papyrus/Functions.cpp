@@ -71,6 +71,11 @@ namespace Papyrus
 		return Acheron::Defeat::GetAllDefeated(a_loadedonly);
 	}
 
+	std::vector<RE::Actor*> Defeat::GetPacified(RE::StaticFunctionTag*, bool a_loadedonly)
+	{
+		return Acheron::Defeat::GetAllPacified(a_loadedonly);
+	}
+
 	void Interface::OpenHunterPrideMenu(VM* a_vm, StackID a_stackID, RE::TESQuest*, RE::Actor* a_target)
 	{
 		if (!a_target) {

@@ -32,6 +32,7 @@ namespace Papyrus
 		bool IsPacified(VM* a_vm, StackID a_stackID, RE::StaticFunctionTag*, RE::Actor* a_actor);
 
 		std::vector<RE::Actor*> GetDefeated(RE::StaticFunctionTag*, bool a_loadedonly);
+		std::vector<RE::Actor*> GetPacified(RE::StaticFunctionTag*, bool a_loadedonly);
 
 		inline void Register(VM* a_vm)
 		{
@@ -43,6 +44,7 @@ namespace Papyrus
 			REGISTERFUNC(IsPacified, "Acheron");
 
 			REGISTERFUNC(GetDefeated, "Acheron");
+			REGISTERFUNC(GetPacified, "Acheron");
 		}
 	}
 
