@@ -66,10 +66,10 @@ namespace Acheron
 		// _CompileAndRun = trampoline.write_call<5>(console.address(), CompileAndRun);
 		// ==================================================
 		REL::Relocation<std::uintptr_t> ragdoll_dmg{ RELOCATION_ID(36346, 37336), 0x35 };
-		_FallAndPhysicsDamage = trampoline.write_call<5>(ragdoll_dmg.address(), FallAndPhysicsDamage);
+		_FallAndPhysicsDamage = trampoline.write_call<5>(ragdoll_dmg.address(), FallAndPhysicsDamage<false>);
 		// ==================================================
 		REL::Relocation<std::uintptr_t> movefinish{ RELOCATION_ID(36973, 37998), OFFSET(0xAE, 0xAB) };
-		_FallAndPhysicsDamage = trampoline.write_call<5>(movefinish.address(), FallAndPhysicsDamage);
+		_FallAndPhysicsDamage = trampoline.write_call<5>(movefinish.address(), FallAndPhysicsDamage<true>);
 		// ==================================================
 		REL::Relocation<std::uintptr_t> plu{ RE::PlayerCharacter::VTABLE[0] };
 		_PlUpdate = plu.write_vfunc(0xAD, UpdatePlayer);
@@ -380,11 +380,14 @@ namespace Acheron
 		return _DoesMagicHitApply(a_target, a_data);
 	}
 
+	template <bool MoveFinish>
 	float Hooks::FallAndPhysicsDamage(RE::Actor* a_this, float a_fallDistance, float a_defaultMult)
 	{
 		float dmg = _FallAndPhysicsDamage(a_this, a_fallDistance, a_defaultMult);
+		float adj_dmg = dmg;
+		AdjustByDifficultyMult(adj_dmg, a_this->IsPlayerRef(), MoveFinish);
 		const float hp = a_this->GetActorValue(RE::ActorValue::kHealth);
-		if (dmg < hp)
+		if (adj_dmg < hp)
 			return dmg;
 		if (!Validation::CanProcessDamage() || Defeat::IsDamageImmune(a_this))
 			return dmg;
@@ -507,7 +510,7 @@ namespace Acheron
 		return magnitude * data.taperWeight * data.taperDuration / (data.taperCurve + 1);
 	}
 
-	void Hooks::AdjustByDifficultyMult(float& damage, const bool playerPOV)
+	void Hooks::AdjustByDifficultyMult(float& damage, const bool playerPOV, const bool onlyReduce)
 	{
 		const auto s = RE::GetINISetting("iDifficulty:GamePlay");
 		if (s->GetType() != RE::Setting::Type::kSignedInteger)
@@ -542,7 +545,8 @@ namespace Acheron
 			return;
 
 		const auto mult = smult->GetFloat();
-		damage *= mult;
+		if (!onlyReduce || mult < 1.0)
+			damage *= mult;
 	}
 
 	void Hooks::ValidateStrip(RE::Actor* a_victim)
