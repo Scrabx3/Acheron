@@ -25,6 +25,7 @@ struct Settings
 	// Knockdown - General
 	static inline float fMidCombatBlackout{ 10.0f };	// Chance to blackout upon defeat (player only)
 	static inline bool bPlayerDefeat{ true };					// if the player may be defeated
+	static inline bool bFollowerDefeat{ true };				// if followers may be defeated
 	static inline bool bFolWithPlDefeat{ false };			// If followers get knocked down alongside player
 	static inline bool bNPCDefeat{ true };						// if NPC may be defeated
 
@@ -37,6 +38,7 @@ struct Settings
 	// Lethal
 	static inline bool bLethalEssential{ true };
 	static inline float fLethalPlayer{ 100.0f };
+	static inline float fLethalFollower{ 100.0f };
 	static inline float fLethalNPC{ 100.0f };
 
 	// Trauma
@@ -92,10 +94,12 @@ struct Settings
 		ENTRY(bNotifyColored),
 		ENTRY(rNotifyColor),
 		ENTRY(bPlayerDefeat),
+		ENTRY(bFollowerDefeat),
 		ENTRY(bNPCDefeat),
 		ENTRY(fMidCombatBlackout),
 		ENTRY(bLethalEssential),
 		ENTRY(fLethalPlayer),
+		ENTRY(fLethalFollower),
 		ENTRY(fLethalNPC),
 		ENTRY(bTraumaEnabled),
 		ENTRY(bTraumaHealth),
