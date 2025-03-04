@@ -40,6 +40,7 @@ namespace Acheron
 		static void UpdateCharacter(RE::Character* a_this, float a_delta);
 		static void MagicHit(uint64_t* unk1, RE::ActiveEffect& effect, uint64_t* unk3, uint64_t* unk4, uint64_t* unk5);
 		static bool DoesMagicHitApply(RE::MagicTarget* a_target, RE::MagicTarget::AddTargetData* a_data);
+		template <bool MoveFinish>
 		static float FallAndPhysicsDamage(RE::Actor* a_this, float a_fallDistance, float a_defaultMult);
 		static uint8_t* DoDetect(RE::Actor* viewer, RE::Actor* target, int32_t& detectval, uint8_t& unk04, uint8_t& unk05, uint32_t& unk06, RE::NiPoint3& pos, float& unk08, float& unk09, float& unk10);
 		static bool GetActivateText(RE::TESNPC* a_this, RE::TESObjectREFR* a_activator, RE::BSString& a_dst);
@@ -53,7 +54,7 @@ namespace Acheron
 		static float GetExpectedHealthModification(RE::ActiveEffect* a_effect);
 		static float GetIncomingEffectDamage(RE::Actor* subject);
 		static void CalcDamageOverTime(RE::Actor* a_target);
-		static void AdjustByDifficultyMult(float& damage, const bool playerPOV);
+		static void AdjustByDifficultyMult(float& damage, const bool playerPOV, const bool onlyReduce = false);
 		static void ValidateStrip(RE::Actor* target);
 
 		static inline REL::Relocation<decltype(CompileAndRun)> _CompileAndRun;
@@ -64,7 +65,7 @@ namespace Acheron
 		static inline REL::Relocation<decltype(MagicHit)> _MagicHit;
 		static inline REL::Relocation<decltype(DoesMagicHitApply)> _DoesMagicHitApply;
 		static inline REL::Relocation<decltype(DoDetect)> _DoDetect;
-		static inline REL::Relocation<decltype(FallAndPhysicsDamage)> _FallAndPhysicsDamage;
+		static inline REL::Relocation<decltype(FallAndPhysicsDamage<true>)> _FallAndPhysicsDamage;
 		static inline REL::Relocation<decltype(GetActivateText)> _GetActivateText;
 	};
 

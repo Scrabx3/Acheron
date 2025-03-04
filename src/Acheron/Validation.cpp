@@ -142,6 +142,8 @@ namespace Acheron
 				return false;
 			if (auto ref = a_victim->GetObjectReference(); ref && ref->As<RE::BGSKeywordForm>()->HasKeywordID(0xD205E))	// ActorTypeGhost
 				return false;
+		} else if (!Settings::bNPCDefeat) {
+			return false;
 		}
 		if (a_aggressor) {
 			if (a_aggressor->IsDead() || a_aggressor->IsInKillMove())

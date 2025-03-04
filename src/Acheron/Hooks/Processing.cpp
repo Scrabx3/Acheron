@@ -177,6 +177,8 @@ namespace Acheron
 				continue;
 
 			const auto damaging = [](const RE::EffectSetting::EffectSettingData& data) {
+				if (data.archetype == RE::EffectArchetype::kPeakValueModifier)
+					return false;
 				if (data.primaryAV == RE::ActorValue::kHealth || data.secondaryAV == RE::ActorValue::kHealth)
 					return (data.flags.underlying() & 6) == 4;	// Detrimental and not Recover
 				return false;
@@ -192,6 +194,7 @@ namespace Acheron
 				const auto magicitem = associate->As<RE::MagicItem>();
 				for (auto& e : magicitem->effects) {
 					if (e && e->baseEffect && damaging(e->baseEffect->data)) {
+						logger::info("Dispelling Spell {:X}", base->GetFormID());
 						eff->Dispel(true);
 						break;
 					}
