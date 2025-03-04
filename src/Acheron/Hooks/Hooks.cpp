@@ -384,6 +384,8 @@ namespace Acheron
 	float Hooks::FallAndPhysicsDamage(RE::Actor* a_this, float a_fallDistance, float a_defaultMult)
 	{
 		float dmg = _FallAndPhysicsDamage(a_this, a_fallDistance, a_defaultMult);
+		if (dmg <= 0.0f)
+			return dmg;
 		float adj_dmg = dmg;
 		AdjustByDifficultyMult(adj_dmg, a_this->IsPlayerRef(), MoveFinish);
 		const float hp = a_this->GetActorValue(RE::ActorValue::kHealth);
