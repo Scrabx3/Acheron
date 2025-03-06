@@ -67,10 +67,10 @@ namespace Acheron
 		// _CompileAndRun = trampoline.write_call<5>(console.address(), CompileAndRun);
 		// ==================================================
 		REL::Relocation<std::uintptr_t> ragdoll_dmg{ RELOCATION_ID(36346, 37336), 0x35 };
-		_FallAndPhysicsDamage = trampoline.write_call<5>(ragdoll_dmg.address(), FallAndPhysicsDamage);
+		_FallAndPhysicsDamage = trampoline.write_call<5>(ragdoll_dmg.address(), FallAndPhysicsDamage<false>);
 		// ==================================================
 		REL::Relocation<std::uintptr_t> movefinish{ RELOCATION_ID(36973, 37998), OFFSET(0xAE, 0xAB) };
-		_FallAndPhysicsDamage = trampoline.write_call<5>(movefinish.address(), FallAndPhysicsDamage);
+		_FallAndPhysicsDamage = trampoline.write_call<5>(movefinish.address(), FallAndPhysicsDamage<true>);
 		// ==================================================
 		REL::Relocation<std::uintptr_t> plu{ RE::PlayerCharacter::VTABLE[0] };
 		_PlUpdate = plu.write_vfunc(0xAD, UpdatePlayer);
@@ -199,7 +199,8 @@ namespace Acheron
 
 			if (!a_target->IsPlayerRef()) {
 				const auto caster = effect->caster.get();
-				if (caster && caster->IsPlayerRef() && !IsHunter(caster.get())) {
+				const auto player = RE::PlayerCharacter::GetSingleton();
+				if (caster && UsesHunterPride(caster.get()) && !IsHunter(player)) {
 					inc_damage = 0.0f;
 					break;
 				}
@@ -248,6 +249,10 @@ namespace Acheron
 			negate = HandleLethal(a_target, aggressor);
 			break;
 		case ProcessType::Any:
+			if (!aggressor || a_hitData.totalDamage < 0.0001) {
+				negate = false;
+				break;
+			}
 			negate = [&]() {
 				if (a_hitData.stagger == 0 || !Settings::bTraumaEnabled)
 					return false;
@@ -291,6 +296,7 @@ namespace Acheron
 		if (!target || !base || target->IsCommandedActor() || !IsNPC(target))
 			return _MagicHit(unk1, effect, unk3, unk4, unk5);
 
+		bool dispel = false;
 		enum
 		{
 			damaging,
@@ -298,6 +304,8 @@ namespace Acheron
 			none
 		};
 		switch ([&]() {
+			if (base->HasArchetype(RE::EffectArchetype::kPeakValueModifier))
+				return none;
 			if (effect.magnitude != 0 && (base->data.primaryAV == RE::ActorValue::kHealth || base->data.secondaryAV == RE::ActorValue::kHealth))
 				return effect.magnitude < 0 ? damaging : healing;
 			return none;
@@ -307,8 +315,10 @@ namespace Acheron
 				Defeat::RescueActor(target, true);
 			break;
 		case damaging:
-			if (Defeat::IsDamageImmune(target))
-				return;
+			if (Defeat::IsDamageImmune(target)) {
+				dispel = true;
+				break;
+			}
 			if (Validation::CanProcessDamage()) {
 				auto caster = Processing::AggressorInfo(effect.caster.get().get(), target);
 				if (!Validation::ValidatePair(target, caster.actor))
@@ -338,14 +348,16 @@ namespace Acheron
 					break;
 				}
 				if (negate && Processing::RegisterDefeat(target, caster)) {
-					return;
+					dispel = true;
 				} else if (effect.spell->GetSpellType() != RE::MagicSystem::SpellType::kEnchantment) {
 					ValidateStrip(target);
 				}
 			}
 			break;
 		}
-		return _MagicHit(unk1, effect, unk3, unk4, unk5);
+		if (dispel)
+			effect.Dispel(true);
+		_MagicHit(unk1, effect, unk3, unk4, unk5);
 	}
 
 	bool Hooks::DoesMagicHitApply(RE::MagicTarget* a_target, RE::MagicTarget::AddTargetData* a_data)
@@ -366,11 +378,16 @@ namespace Acheron
 		return _DoesMagicHitApply(a_target, a_data);
 	}
 
+	template <bool MoveFinish>
 	float Hooks::FallAndPhysicsDamage(RE::Actor* a_this, float a_fallDistance, float a_defaultMult)
 	{
 		float dmg = _FallAndPhysicsDamage(a_this, a_fallDistance, a_defaultMult);
+		if (dmg <= 0.0f)
+			return dmg;
+		float adj_dmg = dmg;
+		AdjustByDifficultyMult(adj_dmg, a_this->IsPlayerRef(), MoveFinish);
 		const float hp = a_this->GetActorValue(RE::ActorValue::kHealth);
-		if (dmg < hp)
+		if (adj_dmg < hp)
 			return dmg;
 		if (!Validation::CanProcessDamage() || Defeat::IsDamageImmune(a_this))
 			return dmg;
@@ -464,6 +481,8 @@ namespace Acheron
 		const auto base = a_effect->GetBaseObject();
 		if (!base || base->data.flags.any(RE::EffectSetting::EffectSettingData::Flag::kRecover))
 			return 0.0f;
+		if (base->HasArchetype(RE::EffectArchetype::kPeakValueModifier))
+			return 0.0f;
 		// Damage done every second by the effect
 		const auto getmagnitude = [&]() -> float {
 			if (a_effect->duration - base->data.taperDuration < a_effect->elapsedSeconds)
@@ -483,7 +502,7 @@ namespace Acheron
 		return magnitude * data.taperWeight * data.taperDuration / (data.taperCurve + 1);
 	}
 
-	void Hooks::AdjustByDifficultyMult(float& damage, const bool playerPOV)
+	void Hooks::AdjustByDifficultyMult(float& damage, const bool playerPOV, const bool onlyReduce)
 	{
 		const auto s = RE::GetINISetting("iDifficulty:GamePlay");
 		if (s->GetType() != RE::Setting::Type::kSignedInteger)
@@ -518,7 +537,8 @@ namespace Acheron
 			return;
 
 		const auto mult = smult->GetFloat();
-		damage *= mult;
+		if (!onlyReduce || mult < 1.0)
+			damage *= mult;
 	}
 
 	void Hooks::ValidateStrip(RE::Actor* a_victim)
