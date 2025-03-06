@@ -5,7 +5,7 @@ PROJECT_NAME = "Acheron"
 
 -- Project
 set_project(PROJECT_NAME)
-set_version("1.5.4")
+set_version("1.6.0")
 set_languages("cxx23")
 set_license("apache-2.0")
 set_warnings("allextra", "error")
