@@ -22,10 +22,10 @@ For documentation on how to interact with this plugin see the [wiki](https://git
 git clone https://github.com/Scrabx3/Acheron-SKSE.git
 cd Acheron-SKSE
 git submodule update --init --recursive
-xmake f -m release [				# Additional Options:
-	--skyrim_ae=true/false			# To build 1.5 or 1.6
-	--compile=true/false			# To compile the papyrus environment
-	--copy_to_papyrus=true/false	# To create/update a mod instance
+xmake f -m release [
+	--skyrim_ae=(y/n)		# build 1.5 or 1.6
+	--compile=(y/n)			# compile & package the papyrus environment
+	--copy_to_papyrus=(y/n)		# create/update a mod instance
 ]
 xmake
 ```
