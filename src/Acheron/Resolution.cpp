@@ -316,12 +316,6 @@ namespace Acheron
 					logger::info("Reading File: {}", filepath);
 					try {
 						auto& data = list.emplace_back(filepath);
-						if (auto n = weights[a_type.data()]; n.IsDefined()) {
-							if (auto node = n[data.name]; node.IsDefined()) {
-								data.weight = node.as<decltype(data.weight)>();
-								logger::info("Using event weight for event {}: {}", data.name, data.weight);
-							}
-						}
 						logger::info("Successfully added event {}", data.name);
 					} catch (const std::exception& e) {
 						logger::error("Unable to read file {}; Error: {}", filepath, e.what());
@@ -330,6 +324,14 @@ namespace Acheron
 			};
 			for (auto&& t : magic_enum::enum_entries<Type>()) {
 				read(t.second, Events[t.first]);
+				if (auto n = weights[t.second.data()]; n.IsDefined()) {
+					for (auto& data : Events[t.first]) {
+						if (auto node = n[data.name]; node.IsDefined()) {
+							data.weight = node.as<decltype(data.weight)>();
+							logger::info("Using event weight for event {}: {}", data.name, data.weight);
+						}
+					}
+				}
 			}
 		} catch (const std::exception& e) {
 			logger::info("Unable to register events; Error: {}", e.what());
