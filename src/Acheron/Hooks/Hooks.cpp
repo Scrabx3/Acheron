@@ -408,13 +408,17 @@ namespace Acheron
 	bool Hooks::HandleLethal(RE::Actor* a_victim, RE::Actor* a_aggressor)
 	{
 		using Flag = RE::Actor::BOOL_FLAGS;
-		bool protecc;
+
+		if (a_victim->IsPlayerRef())
+			return Random::draw<float>(0, 99.5f) < Settings::fLethalPlayer;
+
+		if (a_victim->IsPlayerTeammate())
+			return Random::draw<float>(0, 99.5f) < Settings::fLethalFollower;
+
 		if (Settings::bLethalEssential && (a_victim->boolFlags.all(Flag::kEssential) || !(a_aggressor && a_aggressor->IsPlayerRef()) && a_victim->boolFlags.all(Flag::kProtected)))
 			return true;
 
-		return a_victim->IsPlayerRef() ?
-							 protecc = Random::draw<float>(0, 99.5f) < Settings::fLethalPlayer :
-							 protecc = Random::draw<float>(0, 99.5f) < Settings::fLethalNPC;
+		return Random::draw<float>(0, 99.5f) < Settings::fLethalNPC;
 	}
 
 	bool Hooks::HandleExposed(RE::Actor* a_victim)

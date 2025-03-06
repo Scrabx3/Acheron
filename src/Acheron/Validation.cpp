@@ -137,6 +137,10 @@ namespace Acheron
 			if (!Settings::bPlayerDefeat) {
 				return false;
 			}
+		} else if (a_victim->IsPlayerTeammate()) {
+			if (!Settings::bFollowerDefeat) {
+				return false;
+			}
 		} else if (a_aggressor) {
 			if (!UsesHunterPride(a_aggressor) && (!Settings::bNPCDefeat || !a_victim->IsHostileToActor(a_aggressor)))
 				return false;
