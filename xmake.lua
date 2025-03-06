@@ -18,7 +18,7 @@ option_end()
 
 option("compile")
     set_default(false)
-    set_description("Copy finished build to Papyrus SKSE folder")
+    set_description("Compile papyrus scripts and zip release")
 option_end()
 
 -- Dependencies & Includes
