@@ -41,10 +41,10 @@ namespace Acheron
 	inline void PrintConsole(std::string_view a_msg) { RE::ConsoleLog::GetSingleton()->Print(a_msg.data()); }
 	inline void PrintConsole(const char* a_msg) { RE::ConsoleLog::GetSingleton()->Print(a_msg); }
 	template <typename... Args>
-	inline void PrintConsole(fmt::format_string<Args...> a_fmt, Args&&... args)
+	inline void PrintConsole(const std::format_string<Args...> fmt, Args&&... args)
 	{
-		const auto msg = fmt::format(a_fmt, std::forward<Args>(args)...);
-		RE::ConsoleLog::GetSingleton()->Print(msg.data());
+		const auto msg = std::format(fmt, std::forward<Args>(args)...);
+		RE::ConsoleLog::GetSingleton()->Print(msg.c_str());
 	}
 
 	// Actor

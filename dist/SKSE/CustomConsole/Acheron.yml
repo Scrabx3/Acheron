@@ -1,0 +1,79 @@
+version: 1
+name: Acheron
+alias: ach
+script: AcheronCmd
+help: Debug utility commands for Acheron
+subs:
+  - name: Defeat Actor
+    alias: da
+    func: RunDefeat
+    help: Defeat the selected Actor
+    args:
+      - name: target
+        type: ObjectReference
+        selected: true
+        required: true
+        help: The actor to defeat
+  - name: Rescue Actor
+    alias: ra
+    func: RunRescue
+    help: Rescue the selected Actor
+    args:
+      - name: target
+        type: ObjectReference
+        selected: true
+        required: true
+        help: The actor to rescue
+      - name: release
+        type: Bool
+        required: false
+        default: true
+        help: Also release the actor after rescuing
+  - name: Is Actor Defeated
+    alias: iad
+    func: RunIsDefeated
+    help: Check if the selected Actor is defeated
+    args:
+      - name: target
+        type: ObjectReference
+        selected: true
+        required: true
+        help: The actor to check
+  - name: Get Defeated Actors
+    alias: gda
+    func: RunGetDefeated
+    help: Get all defeated actors
+  - name: Pacify Actor
+    alias: pa
+    func: RunPacify
+    help: Pacify the selected Actor
+    args:
+      - name: target
+        type: ObjectReference
+        selected: true
+        required: true
+        help: The actor to pacify
+  - name: Release Actor
+    alias: rea
+    func: RunRelease
+    help: Release the selected Actor
+    args:
+      - name: target
+        type: ObjectReference
+        selected: true
+        required: true
+        help: The actor to release
+  - name: Is Actor Pacified
+    alias: iap
+    func: RunIsPacified
+    help: Check if the selected Actor is pacified
+    args:
+      - name: target
+        type: ObjectReference
+        selected: true
+        required: true
+        help: The actor to check
+  - name: Get Pacified Actors
+    alias: gpa
+    func: RunGetPacified
+    help: Get all pacified actors

@@ -45,11 +45,12 @@ namespace Serialization
 		uint32_t version;
 		uint32_t length;
 		while (a_intfc->GetNextRecordInfo(type, version, length)) {
+			const auto ty = GetTypeName(type);
 			if (version != _Version) {
-				logger::info("Invalid Version for loaded Data of Type = {}. Expected = {}; Got = {}", GetTypeName(type), _Version, version);
+				logger::info("Invalid Version for loaded Data of Type = {}. Expected = {}; Got = {}", ty, static_cast<uint32_t>(_Version), version);
 				continue;
 			}
-			logger::info("Loading record {}", GetTypeName(type));
+			logger::info("Loading record {}", ty);
 			switch (type) {
 			case _Defeated:
 			case _Pacified:

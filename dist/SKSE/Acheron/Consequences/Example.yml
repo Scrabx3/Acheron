@@ -1,0 +1,44 @@
+Version: 2
+
+Name: Example Name
+Quest: 0xABC|Example.esp
+
+Priority: 2
+Cooldown: 0
+Teleport: false
+InCombat: false
+Hidden: false
+
+Requirements:
+    - Temples.esm
+    - Horses.esp
+
+Conditions:
+    Assailant:
+        RaceType:
+            - Human
+        Faction:
+            - 0x7F30E|Temples.esm: true
+            - 0xA7EF|Example.esp: false
+        Keyword:
+            - 688827|Skyrim.esm: true
+        CrimeFaction:
+            - None
+
+    Victim:
+        Faction:
+            - 0x7F30E|Temples.esm: false
+        Keyword:
+            - 688827: false
+        Location:
+            - 0x976ABC|Horses.esp: false
+        Worldspace:
+            - 0x3C
+
+    Quest:
+        Running:
+            - 0x01EA51|Skyrim.esm: false
+        Completed:
+            - 0x01EA51|Skyrim.esm: false
+            - 0x1EA50|Skyrim.esm
+

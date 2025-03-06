@@ -50,7 +50,8 @@ namespace Acheron
 		SKSE::AllocTrampoline((static_cast<size_t>(1) << 7) + _ProcessHitData.getSize());
 		auto& trampoline = SKSE::GetTrampoline();
 		// ==================================================
-		trampoline.write_branch<5>(phd.address(), trampoline.allocate(_ProcessHitData));
+		auto patchDst = trampoline.allocate(_ProcessHitData);
+		trampoline.write_branch<5>(phd.address(), patchDst);
 		REL::safe_fill(phd.address() + 5, 0x90, 3);
 		// ==================================================
 		REL::Relocation<std::uintptr_t> magichit{ RELID(33763, 34547), OFFSET(0x52F, 0x7B1) };
@@ -78,9 +79,6 @@ namespace Acheron
 		_Load3D = char_vt.write_vfunc(0x6A, Load3D);
 		_UpdateCombat = char_vt.write_vfunc(0xE4, UpdateCombat);
 		_UpdateCharacter = char_vt.write_vfunc(0xAD, UpdateCharacter);
-		// ==================================================
-		// REL::Relocation<std::uintptr_t> npc_vt{ RE::TESNPC::VTABLE[0] };
-		// _GetActivateText = npc_vt.write_vfunc(0x4C, GetActivateText);
 
 		logger::info("Hooks installed");
 	}
@@ -412,18 +410,6 @@ namespace Acheron
 		return _DoDetect(viewer, target, detectval, unk04, unk05, unk06, pos, unk08, unk09, unk10);
 	}
 
-	bool Hooks::GetActivateText(RE::TESNPC* a_this, RE::TESObjectREFR* a_activator, RE::BSString& a_dst)
-	{
-		const auto ret = _GetActivateText(a_this, a_activator, a_dst);
-		auto ref = a_this ? a_this->AsReference() : nullptr;
-		auto act = ref ? ref->As<RE::Actor>() : nullptr;
-		if (!act || !Defeat::IsDefeated(act))
-			return ret;
-
-		a_dst = fmt::format("{} (Defeated)", a_dst);
-		return ret;
-	}
-
 	Hooks::ProcessType Hooks::GetProcessType(RE::Actor* a_aggressor, bool a_lethal)
 	{
 		if (a_aggressor && UsesHunterPride(a_aggressor)) {
@@ -439,13 +425,17 @@ namespace Acheron
 	bool Hooks::HandleLethal(RE::Actor* a_victim, RE::Actor* a_aggressor)
 	{
 		using Flag = RE::Actor::BOOL_FLAGS;
-		bool protecc;
+
+		if (a_victim->IsPlayerRef())
+			return Random::draw<float>(0, 99.5f) < Settings::fLethalPlayer;
+
+		if (a_victim->IsPlayerTeammate())
+			return Random::draw<float>(0, 99.5f) < Settings::fLethalFollower;
+
 		if (Settings::bLethalEssential && (a_victim->boolFlags.all(Flag::kEssential) || !(a_aggressor && a_aggressor->IsPlayerRef()) && a_victim->boolFlags.all(Flag::kProtected)))
 			return true;
 
-		return a_victim->IsPlayerRef() ?
-							 protecc = Random::draw<float>(0, 99.5f) < Settings::fLethalPlayer :
-							 protecc = Random::draw<float>(0, 99.5f) < Settings::fLethalNPC;
+		return Random::draw<float>(0, 99.5f) < Settings::fLethalNPC;
 	}
 
 	bool Hooks::HandleExposed(RE::Actor* a_victim)
@@ -570,9 +560,9 @@ namespace Acheron
 		RE::ActorEquipManager::GetSingleton()->UnequipObject(a_victim, item);
 		if (Random::draw<float>(0, 99.5f) < Settings::fStripDestroy && !IsDaedric(item)) {
 			if (a_victim->IsPlayerRef() && Settings::bNotifyDestroy) {
-				auto base = fmt::format("{} got teared off and destroyed", item->GetName());
+				auto base = std::format("{} got teared off and destroyed", item->GetName());
 				if (Settings::bNotifyColored) {
-					base = fmt::format("<font color = '{}'>{}</font color>", Settings::rNotifyColor, base);
+					base = std::format("<font color = '{}'>{}</font color>", Settings::rNotifyColor, base);
 				}
 				RE::DebugNotification(base.c_str());
 			}
