@@ -40,7 +40,10 @@ namespace Acheron
 
 		EventResult ProcessEvent(RE::InputEvent* const* a_event, RE::BSTEventSource<RE::InputEvent*>*) override;
 
-	public:
+		void CacheWornArmor(const RE::FormID a_form, RE::TESObjectARMO* a_armor);
+		std::vector<RE::TESObjectARMO*> ExtractCachedArmor(const RE::FormID a_form);
+	private:
 		std::map<RE::FormID, std::vector<RE::TESObjectARMO*>> worn_cache{};
+		std::mutex cache_lock{};
 	};
 }	 // namespace Acheron

@@ -13,6 +13,12 @@ namespace Acheron
 			Break
 		};
 
+		enum class VictimState {
+			Defeating,
+			Defeated,
+			Rescuing
+		};
+
 		struct VictimData
 		{
 			VictimData(float a_registertime) :
@@ -22,14 +28,15 @@ namespace Acheron
 			float registered_at;							// GameDaysPassed at construction
 			bool allow_recovery{ true };			// if this actor may passively recover
 			bool mark_for_recovery{ false };	// Rescue this actor the next time they load in?
+			std::atomic<VictimState> state{ VictimState::Defeating };
 		};
 
 	public:
 		static std::vector<RE::Actor*> GetAllPacified(bool a_loadedonly);
 		static std::vector<RE::Actor*> GetAllDefeated(bool a_loadedonly);
 
-		static void ForEachVictim(std::function<VictimVistor(RE::FormID a_victimid, VictimData& a_data)> a_visitor);
-		static std::optional<Defeat::VictimData> GetVictimData(RE::FormID a_formid);
+		static void ForEachVictim(std::function<VictimVistor(RE::FormID a_victimid, std::shared_ptr<VictimData> a_data)> a_visitor);
+		static std::shared_ptr<Defeat::VictimData> GetVictimData(RE::FormID a_formid);
 		static void DisableRecovery(bool a_loadedonly);
 
 		static void DefeatActor(RE::Actor* a_victim);
@@ -52,8 +59,9 @@ namespace Acheron
 		static void PacifyUnsafe(RE::Actor* a_victim);
 
 	private:
-		static inline std::map<RE::FormID, VictimData> Victims;
+		static inline std::map<RE::FormID, std::shared_ptr<VictimData>> Victims;
 		static inline std::set<RE::FormID> Pacified;
+		static inline std::shared_mutex _m;
 	};
 
 }	 // namespace Defeat

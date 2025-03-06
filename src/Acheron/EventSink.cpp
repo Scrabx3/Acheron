@@ -35,10 +35,10 @@ namespace Acheron
 				return EventResult::kContinue;
 
 		std::vector<RE::Actor*> rescuethis{};
-		Defeat::ForEachVictim([&](RE::FormID a_formid, Defeat::VictimData& a_data) {
+		Defeat::ForEachVictim([&](RE::FormID a_formid, std::shared_ptr<Defeat::VictimData> a_data) {
 			RE::Actor* victim = RE::TESForm::LookupByID<RE::Actor>(a_formid);
 			if (!victim || !victim->Is3DLoaded()) {
-				a_data.mark_for_recovery = true;
+				a_data->mark_for_recovery = true;
 			} else if (Settings::iFollowerRescue == 2 && victim->IsPlayerTeammate()) {
 				if (!victim->Is3DLoaded() || victim->GetPosition().GetDistance(a_event->actor->GetPosition()) > 4096)
 					rescuethis.push_back(victim);
@@ -56,17 +56,16 @@ namespace Acheron
 		if (!a_event || a_event->newState != RE::ACTOR_COMBAT_STATE::kNone)
 			return EventResult::kContinue;
 
+		const auto worn = ExtractCachedArmor(a_event->actor->GetFormID());
 		const auto actor = a_event->actor->As<RE::Actor>();
 		if (actor && actor->Is3DLoaded() && !actor->IsDead() && !Defeat::IsDefeated(actor)) {
-			auto w = worn_cache.find(actor->GetFormID());
-			if (w != worn_cache.end()) {
+			if (!worn.empty()) {
 				const auto em = RE::ActorEquipManager::GetSingleton();
-				for (auto& gear : w->second) {
+				for (auto& gear : worn) {
 					em->EquipObject(actor, gear);
 				}
 			}
 		}
-		worn_cache.erase(a_event->actor->GetFormID());
 		return EventResult::kContinue;
 	}
 
@@ -181,6 +180,20 @@ namespace Acheron
 			}
 		}
 		return EventResult::kContinue;
+	}
+
+	void EventHandler::CacheWornArmor(const RE::FormID a_form, RE::TESObjectARMO* a_armor)
+	{
+		std::scoped_lock _lock{cache_lock};
+		worn_cache[a_form].push_back(a_armor);
+	}
+
+	std::vector<RE::TESObjectARMO*> EventHandler::ExtractCachedArmor(const RE::FormID a_form)
+	{
+		std::scoped_lock _lock{cache_lock};
+		if (auto node = worn_cache.extract(a_form); !node.empty())
+			return std::move(node.mapped());
+		return {};
 	}
 
 }	 // namespace Acheron

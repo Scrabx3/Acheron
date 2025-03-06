@@ -572,11 +572,7 @@ namespace Acheron
 		} else if (!a_victim->IsPlayerRef()) {
 			// store armor for re-equipping on combat end, since NPC normally dont do it on their own..
 			// IDEA: use vanilla NPC gear re-evaluation
-			auto& v = EventHandler::GetSingleton()->worn_cache;
-			if (auto where = v.find(a_victim->GetFormID()); where != v.end())
-				where->second.push_back(item);
-			else
-				v.insert(std::make_pair(a_victim->GetFormID(), std::vector<RE::TESObjectARMO*>{ item }));
+			EventHandler::GetSingleton()->CacheWornArmor(a_victim->GetFormID(), item);
 		}
 	}
 
