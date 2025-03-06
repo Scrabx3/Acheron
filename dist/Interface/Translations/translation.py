@@ -24,6 +24,7 @@ languages = [
   "JAPANESE",
   "NORWEGIAN",
   "POLISH",
+  "PORTUGUESE",
   "RUSSIAN",
   "SPANISH",
   "SWEDISH",
