@@ -298,7 +298,7 @@ namespace Papyrus
 		if (a_filepath.empty()) {
 			a_vm->TraceStack("File path to swf file is empty", a_stackID);
 			return false;
-		} else if (!fs::exists(fmt::format("Data\\Interface\\{}.swf", a_filepath))) {
+		} else if (!fs::exists(std::format("Data\\Interface\\{}.swf", a_filepath))) {
 			a_vm->TraceStack("File path does not lead to a valid file", a_stackID);
 			return false;
 		}

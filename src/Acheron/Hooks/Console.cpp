@@ -6,7 +6,7 @@ inline std::string ActorVecAsString(std::vector<RE::Actor*> a_actors)
 {
 	std::string ret{ "[\n" };
 	for (auto&& actor : a_actors) {
-		ret += fmt::format("\t{:X}\n", actor->GetFormID());
+		ret += std::format("\t{:X}\n", actor->GetFormID());
 	}
 	return ret + "]";
 }

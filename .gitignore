@@ -1,6 +1,8 @@
-.vs
-.vscode
-*.code-workspace
+.vs/
+.vscode/
+.xmake/
 build/
-/vcpkg_installed
-
+.release/
+dist/SKSE/Plugins/
+*.pex
+*.swf

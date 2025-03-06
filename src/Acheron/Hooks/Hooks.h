@@ -42,7 +42,6 @@ namespace Acheron
 		static bool DoesMagicHitApply(RE::MagicTarget* a_target, RE::MagicTarget::AddTargetData* a_data);
 		static float FallAndPhysicsDamage(RE::Actor* a_this, float a_fallDistance, float a_defaultMult);
 		static uint8_t* DoDetect(RE::Actor* viewer, RE::Actor* target, int32_t& detectval, uint8_t& unk04, uint8_t& unk05, uint32_t& unk06, RE::NiPoint3& pos, float& unk08, float& unk09, float& unk10);
-		static bool GetActivateText(RE::TESNPC* a_this, RE::TESObjectREFR* a_activator, RE::BSString& a_dst);
 
 		// Hit Processing
 		static HitResult ProcessHitData(RE::Actor* a_target, RE::HitData& a_hitData);
@@ -65,7 +64,6 @@ namespace Acheron
 		static inline REL::Relocation<decltype(DoesMagicHitApply)> _DoesMagicHitApply;
 		static inline REL::Relocation<decltype(DoDetect)> _DoDetect;
 		static inline REL::Relocation<decltype(FallAndPhysicsDamage)> _FallAndPhysicsDamage;
-		static inline REL::Relocation<decltype(GetActivateText)> _GetActivateText;
 	};
 
 }	 // namespace Hooks

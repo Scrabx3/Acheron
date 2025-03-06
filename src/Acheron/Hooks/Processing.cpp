@@ -63,12 +63,12 @@ namespace Acheron
 		logger::info("Aggressor {:X} -> Register Defeat for Victim {:X}", a_aggressor ? a_aggressor->GetFormID() : 0, a_victim->GetFormID());
 		assert(a_victim);
 		if (!a_victim->IsPlayerRef() && Settings::bNotifyDefeat) {
-			std::string base = fmt::format("{} has been defeated", a_victim->GetDisplayFullName());
+			std::string base = std::format("{} has been defeated", a_victim->GetDisplayFullName());
 			if (a_aggressor) {
-				base = fmt::format("{} by {}", base, a_aggressor->GetDisplayFullName());
+				base = std::format("{} by {}", base, a_aggressor->GetDisplayFullName());
 			}
 			if (Settings::bNotifyColored) {
-				base = fmt::format("<font color = '{}'>{}</font color>", Settings::rNotifyColor, base);
+				base = std::format("<font color = '{}'>{}</font color>", Settings::rNotifyColor, base);
 			}
 			RE::DebugNotification(base.c_str());
 		}

@@ -54,30 +54,9 @@ static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message)
 	}
 }
 
-#ifdef SKYRIM_SUPPORT_AE
-extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []() {
-	SKSE::PluginVersionData v;
-	v.PluginVersion(Plugin::VERSION);
-	v.PluginName(Plugin::NAME);
-	v.AuthorName("Scrab Joséline"sv);
-	v.UsesAddressLibrary();
-	v.UsesUpdatedStructs();
-	v.CompatibleVersions({ SKSE::RUNTIME_LATEST });
-	// v.CompatibleVersions({ SKSE::RUNTIME_1_6_353 });
-	return v;
-}();
-#else
-extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface*, SKSE::PluginInfo* a_info)
-{
-	a_info->infoVersion = SKSE::PluginInfo::kVersion;
-	a_info->name = Plugin::NAME.data();
-	a_info->version = Plugin::VERSION.pack();
-	return true;
-}
-#endif
-
 extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
 {
+	constexpr auto PLUGIN_NAME = "Acheron";
 	const auto InitLogger = []() -> bool {
 #ifndef NDEBUG
 		auto sink = std::make_shared<spdlog::sinks::msvc_sink_mt>();
@@ -85,7 +64,7 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 		auto path = logger::log_directory();
 		if (!path)
 			return false;
-		*path /= fmt::format(FMT_STRING("{}.log"), Plugin::NAME);
+		*path /= std::format("{}.log", PLUGIN_NAME);
 		auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path->string(), true);
 #endif
 		auto log = std::make_shared<spdlog::logger>("global log"s, std::move(sink));
@@ -102,8 +81,6 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 #else
 		spdlog::set_pattern("[%T] [%^%l%$] %v"s);
 #endif
-
-		logger::info("{} v{}", Plugin::NAME, Plugin::VERSION.string());
 		return true;
 	};
 	if (a_skse->IsEditor()) {
@@ -137,7 +114,7 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 	serialization->SetRevertCallback(Serialization::Serialize::RevertCallback);
 	serialization->SetFormDeleteCallback(Serialization::Serialize::FormDeleteCallback);
 
-	logger::info("{} loaded", Plugin::NAME);
+	logger::info("{} loaded", PLUGIN_NAME);
 
 	return true;
 }

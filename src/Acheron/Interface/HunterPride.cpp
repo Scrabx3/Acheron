@@ -240,7 +240,8 @@ namespace Acheron::Interface
 				a_value = FormFromString<T>(a_objstring);
 			}
 			if (!a_value) {
-				throw std::exception{ fmt::format("Condition received invalid value argument {}", a_objstring).c_str() };
+				const auto err = std::format("Object does not represent a valid form: {}", a_objstring);
+				throw std::exception{ err.c_str() };
 			}
 		};
 		switch (a_type) {

@@ -9,10 +9,12 @@ namespace Papyrus
 	{
 		auto w = Settings::table.find(a_setting);
 		if (w == Settings::table.end()) {
-			a_vm->TraceStack(fmt::format("Unrecognized setting: {}", a_setting).c_str(), a_stackID);
+			const auto err = std::format("Unrecognized setting: {}", a_setting);
+			a_vm->TraceStack(err.c_str(), a_stackID);
 			return 0;
 		} else if (!std::holds_alternative<T>(w->second)) {
-			a_vm->TraceStack(fmt::format("Setting {} is of invalid type, expected {}", a_setting, typeid(T).name()).c_str(), a_stackID);
+			const auto err = std::format("Setting {} is of invalid type, expected {}", a_setting, typeid(T).name());
+			a_vm->TraceStack(err.c_str(), a_stackID);
 			return 0;
 		}
 		return std::get<T>(w->second);
@@ -46,8 +48,7 @@ namespace Papyrus
 		try {
 			return std::stoi(c.c_str(), nullptr, 16);
 		} catch (const std::exception& e) {
-			const auto err = fmt::format("Unable to retrieve color setting due to error, restore default. Error: {}", e.what());
-			logger::error("{}", err);
+			logger::error("Unable to retrieve color setting due to error, restore default. Error: {}", e.what());
 			*ptr = "#FF0000";
 			return 0xFF0000;
 		}
@@ -96,7 +97,8 @@ namespace Papyrus
 	{
 		using Type = Acheron::Resolution::Type;
 		if (a_type < 0 || a_type >= Type::Total) {
-			a_vm->TraceStack(fmt::format("Invalid type {}", a_type).c_str(), a_stackID);
+			const auto err = std::format("Invalid type {}", a_type);
+			a_vm->TraceStack(err.c_str(), a_stackID);
 			return {};
 		}
 		return Acheron::Resolution::GetEvents(Type(a_type));
@@ -106,7 +108,8 @@ namespace Papyrus
 	{
 		using Type = Acheron::Resolution::Type;
 		if (a_type < 0 || a_type >= Type::Total) {
-			a_vm->TraceStack(fmt::format("Invalid type {}", a_type).c_str(), a_stackID);
+			const auto err = std::format("Invalid type {}", a_type);
+			a_vm->TraceStack(err.c_str(), a_stackID);
 			return "";
 		}
 

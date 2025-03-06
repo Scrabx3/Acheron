@@ -75,5 +75,14 @@ namespace Papyrus
 	using StackID = RE::VMStackID;
 }
 
+template <>
+struct std::formatter<RE::BSFixedString> : std::formatter<const char*>
+{
+	template <typename FormatContext>
+	auto format(const RE::BSFixedString& myStr, FormatContext& ctx) const
+	{
+		return std::formatter<const char*>::format(myStr.data(), ctx);
+	}
+};
+
 #define DLLEXPORT __declspec(dllexport)
-#include "Plugin.h"

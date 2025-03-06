@@ -20,14 +20,17 @@ namespace Acheron
 
 			const auto plugins = req.as<std::vector<std::string>>();
 			for (auto&& plugin : plugins) {
-				if (RE::TESDataHandler::GetSingleton()->LookupModByName(plugin) == nullptr)
-					throw std::exception(fmt::format("Requirement not loaded: {}", plugin).c_str());
+				if (RE::TESDataHandler::GetSingleton()->LookupModByName(plugin) == nullptr) {
+					const auto err = std::format("Requirement not loaded: {}", plugin);
+					throw std::exception(err.c_str());
+				}
 			}
 		}
 		// Quest
 		quest = FormFromString<RE::TESQuest*>(root["Quest"].as<std::string>());
 		if (!quest) {
-			throw std::exception(fmt::format("Unable to find quest: {}", root["Quest"].as<std::string>()).c_str());
+			const auto err = std::format("Unable to find quest: {}", root["Quest"].as<std::string>());
+			throw std::exception(err.c_str());
 		}
 		// Attributes
 		const auto setattribute = [this, &root]<class T>(const char* a_setting, T& a_attribute) {
@@ -44,7 +47,8 @@ namespace Acheron
 				uint8_t prio;
 				setattribute("Priority", prio);
 				if (prio >= Priority::p_Total) {
-					throw std::exception(fmt::format("Invalid priority: {}", prio).c_str());
+					const auto err = std::format("Invalid priority: {}", prio);
+					throw std::exception(err.c_str());
 				}
 				priority = Priority(prio);
 			}
@@ -65,7 +69,10 @@ namespace Acheron
 			}
 			break;
 		default:
-			throw std::exception(fmt::format("Invalid version: {}", version).c_str());
+			{
+				const auto err = std::format("Invalid version: {}", version);
+				throw std::exception(err.c_str());
+			}
 		}
 		// Flags
 		const auto setflag = [this, &root](Flag a_flag) {
@@ -149,7 +156,10 @@ namespace Acheron
 				}
 				break;
 			default:
-				throw std::exception(fmt::format("Invalid version: {}", version).c_str());
+				{
+					const auto err = std::format("Invalid version: {}", version);
+					throw std::exception(err.c_str());
+				}
 			}
 		}
 	}
@@ -184,8 +194,10 @@ namespace Acheron
 				return;
 			}
 			const auto val = FormFromString<T>(a_conditionobject);
-			if (!val)
-				throw std::exception(fmt::format("Object does not represent a valid form: {}", a_conditionobject).c_str());
+			if (!val) {
+				const auto err = std::format("Object does not represent a valid form: {}", a_conditionobject);
+				throw std::exception(err.c_str());
+			}
 			dest = val;
 		};
 
@@ -225,7 +237,8 @@ namespace Acheron
 			break;
 		default:
 			{
-				throw std::exception(fmt::format("Invalid Type: {}", static_cast<int>(a_type)).c_str());
+				const auto err = std::format("Invalid Type: {}", static_cast<int>(a_type));
+				throw std::exception(err.c_str());
 			}
 		}
 	}
@@ -348,7 +361,8 @@ namespace Acheron
 
 	bool Resolution::SelectQuest(Type type, RE::Actor* a_victim, const std::vector<RE::Actor*>& a_victoires, bool a_incombat, bool a_doteleport)
 	{
-		logger::info("Looking up quest of type {} for {:X} and {} aggressors. Combat? {} / Teleport? {}", type, a_victim->formID, a_victoires.size(), a_incombat, a_doteleport);
+		logger::info("Looking up quest of type {} for {:X} and {} aggressors. Combat? {} / Teleport? {}", 
+			std::to_underlying(type), a_victim->formID, a_victoires.size(), a_incombat, a_doteleport);
 		const bool tp = Validation::AllowTeleport();
 		if (!tp && a_doteleport) {
 			logger::info("Teleport event requested but teleportation is disabled");
@@ -386,7 +400,7 @@ namespace Acheron
 	{
 		assert(type != Type::Any && type != Type::Total);
 		if (Events[type].empty()) {
-			logger::info("No custom events for type {}", type);
+			logger::info("No custom events for type {}", std::to_underlying(type));
 			return false;
 		}
 		std::vector<std::pair<RE::TESQuest*, int>> ret[EventData::Priority::p_Total];
@@ -419,8 +433,8 @@ namespace Acheron
 	}
 
 	inline std::string MakeMCMEventKey(const EventData& e) {
-		return fmt::format("[{}{}{}] {};{};{}",
-				e.priority,
+		return std::format("[{}{}{}] {};{};{}",
+				std::to_underlying(e.priority),
 				e.flags.all(EventData::Flag::InCombat) ? ", C" : "",
 				e.flags.all(EventData::Flag::Teleport) ? ", T" : "",
 				e.name,
@@ -456,7 +470,7 @@ namespace Acheron
 				return MakeMCMEventKey(e);
 			}
 		}
-		logger::warn("Unable to find event with name {} of type {}. Weight will NOT be set", a_name, a_type);
+		logger::warn("Unable to find event with name {} of type {}. Weight will NOT be set", a_name, std::to_underlying(a_type));
 		return "";
 	}
 }
