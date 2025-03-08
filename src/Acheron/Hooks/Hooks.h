@@ -33,7 +33,6 @@ namespace Acheron
 		};
 
 		// Hooks
-		static void CompileAndRun(RE::Script* a_script, RE::ScriptCompiler* a_compiler, RE::COMPILER_NAME a_name, RE::TESObjectREFR* a_targetRef);
 		static void UpdatePlayer(RE::PlayerCharacter* player, float delta);
 		static RE::NiAVObject* Load3D(RE::Character& a_this, bool a_arg1);
 		static void UpdateCombat(RE::Character* a_this);
@@ -56,7 +55,6 @@ namespace Acheron
 		static void AdjustByDifficultyMult(float& damage, const bool playerPOV, const bool onlyReduce = false);
 		static void ValidateStrip(RE::Actor* target);
 
-		static inline REL::Relocation<decltype(CompileAndRun)> _CompileAndRun;
 		static inline REL::Relocation<decltype(UpdatePlayer)> _PlUpdate;
 		static inline REL::Relocation<decltype(Load3D)> _Load3D;
 		static inline REL::Relocation<decltype(UpdateCombat)> _UpdateCombat;
