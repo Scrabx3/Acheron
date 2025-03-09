@@ -106,7 +106,7 @@ target(PROJECT_NAME)
                 "-i=" .. script_source .. ";"
                     .. path.join(game_folder, "Data/Source/Scripts") .. ";"
                     .. path.join(mod_folder, "SkyUI SDK/Source/Scripts") .. ";"
-                    .. path.join(mod_folder, "ConsoleUtilSSE Extended/Source/Scripts"),
+                    .. path.join(mod_folder, "ConsoleUtilSSE/Source/Scripts"),
                 "-o=" .. script_output, 
                 "-f=" .. flags_file, 
                 "-optimize", "-all" })
