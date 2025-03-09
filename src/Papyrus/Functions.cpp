@@ -14,8 +14,9 @@ namespace Papyrus
 			a_vm->TraceStack("Cannot Defeat a none Actor", a_stackID);
 			return;
 		}
+		auto actor = a_actor->GetHandle();
 		SKSE::GetTaskInterface()->AddTask([=]() {
-			Acheron::Defeat::DefeatActor(a_actor);
+			Acheron::Defeat::DefeatActor(actor.get().get());
 		});
 	}
 
@@ -25,8 +26,9 @@ namespace Papyrus
 			a_vm->TraceStack("Cannot Rescue a none Actor", a_stackID);
 			return;
 		}
+		auto actor = a_actor->GetHandle();
 		SKSE::GetTaskInterface()->AddTask([=]() {
-			Acheron::Defeat::RescueActor(a_actor, undopacify);
+			Acheron::Defeat::RescueActor(actor.get().get(), undopacify);
 		});
 	}
 

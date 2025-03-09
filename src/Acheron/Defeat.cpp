@@ -110,9 +110,12 @@ namespace Acheron
 			{
 			case VictimState::Defeating:
 				logger::info("{:X} ({}) is still being defeated, delaying rescue", a_victim->GetFormID(), a_victim->GetDisplayFullName());
-				SKSE::GetTaskInterface()->AddTask([&]() {
-					RescueActor(a_victim, undo_pacify);
-				});
+				{
+					auto victim = a_victim->GetHandle();
+					SKSE::GetTaskInterface()->AddTask([victim, undo_pacify]() {
+						RescueActor(victim.get().get(), undo_pacify);
+					});
+				}
 				return;
 			case VictimState::Rescuing:
 				logger::error("{:X} ({}) is already being rescued", a_victim->GetFormID(), a_victim->GetDisplayFullName());
@@ -168,10 +171,11 @@ namespace Acheron
 	{
 		RescueActor(a_victim, false);
 		if (a_undo_pacify) {
-			std::thread([a_victim]() {
+			auto victim = a_victim->GetHandle();
+			std::thread([victim]() {
 				std::this_thread::sleep_for(4s);
 				SKSE::GetTaskInterface()->AddTask([=]() {
-					UndoPacify(a_victim);
+					UndoPacify(victim.get().get());
 				});
 			}).detach();
 		}
