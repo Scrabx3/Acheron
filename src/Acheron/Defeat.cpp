@@ -369,7 +369,9 @@ namespace Acheron
 						ref->As<RE::BGSKeywordForm>()->AddKeyword(GameForms::Defeated);
 					}
 
-					Victims.emplace(formID, std::make_shared<VictimData>(time));
+					auto data = std::make_shared<VictimData>(time);
+					data->state.store(VictimState::Defeated);
+					Victims.emplace(formID, data);
 				}
 				logger::info("Loaded {} Victims from cosave", Victims.size());
 			}
