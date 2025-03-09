@@ -100,14 +100,15 @@ namespace Acheron
 			switch (expected) {
 			case VictimState::Defeating:
 				logger::info("{:X} ({}) is still being defeated, delaying rescue", a_victim->GetFormID(), a_victim->GetDisplayFullName());
-				std::thread{ [&]() {
+				{
 					auto victim = a_victim->GetHandle();
-					std::this_thread::sleep_for(100ms);
-					SKSE::GetTaskInterface()->AddTask([victim, undo_pacify]() {
-						RescueActor(victim.get().get(), undo_pacify);
-					});
-					RescueActor(a_victim, undo_pacify);
-				} }.detach();
+					std::thread{ [victim, undo_pacify]() {
+						std::this_thread::sleep_for(100ms);
+						SKSE::GetTaskInterface()->AddTask([=]() {
+							RescueActor(victim.get().get(), undo_pacify);
+						});
+					} }.detach();
+				}
 				return;
 			case VictimState::Rescuing:
 				logger::error("{:X} ({}) is already being rescued", a_victim->GetFormID(), a_victim->GetDisplayFullName());
