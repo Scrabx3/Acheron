@@ -10,20 +10,14 @@ namespace Acheron
 	{
 	public:
 		PackageOverrideCallback(RE::Actor* a_actor) :
-				_actor(a_actor) {}
+			_actor(a_actor->GetHandle()) {}
 		~PackageOverrideCallback() = default;
 
-		virtual void operator()([[maybe_unused]] RE::BSScript::Variable a_result) override
-		{
-			_actor->EvaluatePackage();
-		}
-
-		virtual void SetObject([[maybe_unused]] const RE::BSTSmartPointer<RE::BSScript::Object>& a_object)
-		{
-		}
+		virtual void operator()(RE::BSScript::Variable) override { _actor.get()->EvaluatePackage(); }
+		virtual void SetObject(const RE::BSTSmartPointer<RE::BSScript::Object>&) {}
 
 	private:
-		RE::Actor* _actor;
+		RE::ActorHandle _actor;
 	};
 
 	///
@@ -37,10 +31,9 @@ namespace Acheron
 			logger::error("{:X} ({}) is dead and cannot be defeated", a_victim->GetFormID(), a_victim->GetDisplayFullName());
 			return;
 		}
-
 		auto data = std::make_shared<VictimData>(RE::Calendar::GetSingleton()->GetDaysPassed());
 		{
-			std::unique_lock lock{_m};
+			std::unique_lock lock{ _m };
 			if (!Victims.emplace(a_victim->GetFormID(), data).second) {
 				logger::error("{:X} ({}) is already defeated", a_victim->GetFormID(), a_victim->GetDisplayFullName());
 				return;
@@ -89,7 +82,6 @@ namespace Acheron
 				}
 			}
 		}
-
 		const auto health = a_victim->GetActorValue(RE::ActorValue::kHealth);
 		a_victim->RestoreActorValue(RE::ACTOR_VALUE_MODIFIER::kDamage, RE::ActorValue::kHealth, -health + 0.05f);
 
@@ -101,21 +93,21 @@ namespace Acheron
 
 	void Defeat::RescueActor(RE::Actor* a_victim, bool undo_pacify)
 	{
-
 		if (auto data = GetVictimData(a_victim->GetFormID()); !data) {
 			logger::error("{:X} ({}) is not a defeated actor and cannot be rescued", a_victim->GetFormID(), a_victim->GetDisplayFullName());
 			return;
 		} else if (auto expected = VictimState::Defeated; !data->state.compare_exchange_strong(expected, VictimState::Rescuing)) {
-			switch (expected)
-			{
+			switch (expected) {
 			case VictimState::Defeating:
 				logger::info("{:X} ({}) is still being defeated, delaying rescue", a_victim->GetFormID(), a_victim->GetDisplayFullName());
-				{
+				std::thread{ [&]() {
 					auto victim = a_victim->GetHandle();
+					std::this_thread::sleep_for(100ms);
 					SKSE::GetTaskInterface()->AddTask([victim, undo_pacify]() {
 						RescueActor(victim.get().get(), undo_pacify);
 					});
-				}
+					RescueActor(a_victim, undo_pacify);
+				} }.detach();
 				return;
 			case VictimState::Rescuing:
 				logger::error("{:X} ({}) is already being rescued", a_victim->GetFormID(), a_victim->GetDisplayFullName());
@@ -154,7 +146,7 @@ namespace Acheron
 		}
 
 		{
-			std::unique_lock lock{_m};
+			std::unique_lock lock{ _m };
 			if (auto ref = a_victim->GetObjectReference(); !ref) {
 				logger::warn("{:X} ({}) has no associated reference, keywords will not be removed", a_victim->GetFormID(), a_victim->GetDisplayFullName());
 			} else {
@@ -191,14 +183,13 @@ namespace Acheron
 			logger::error("{:X} ({}) is already pacified", a_victim->GetFormID(), a_victim->GetDisplayFullName());
 			return;
 		}
-
 		PacifyUnsafe(a_victim);
 	}
 
 	void Defeat::PacifyUnsafe(RE::Actor* a_victim)
 	{
 		{
-			std::unique_lock lock{_m};
+			std::unique_lock lock{ _m };
 			if (auto ref = a_victim->GetObjectReference(); !ref) {
 				logger::warn("{:X} ({}) has no associated reference, keywords will NOT be added", a_victim->GetFormID(), a_victim->GetDisplayFullName());
 			} else {
@@ -208,20 +199,19 @@ namespace Acheron
 				return;
 			}
 		}
-
 		const auto process = RE::ProcessLists::GetSingleton();
+		const auto detection = process->runDetection;
 		process->runDetection = false;
 		process->ClearCachedFactionFightReactions();
 		process->StopCombatAndAlarmOnActor(a_victim, false);
-		process->runDetection = true;
-
+		process->runDetection = detection;
 		logger::info("{:X} ({}) has been pacified", a_victim->GetFormID(), a_victim->GetDisplayFullName());
 	}
 
 	void Defeat::UndoPacify(RE::Actor* a_victim)
 	{
 		{
-			std::unique_lock lock{_m};
+			std::unique_lock lock{ _m };
 			if (!Pacified.contains(a_victim->GetFormID())) {
 				logger::error("{:X} ({}) is not a pacified actor and cannot be released", a_victim->GetFormID(), a_victim->GetDisplayFullName());
 				return;
@@ -232,26 +222,25 @@ namespace Acheron
 			}
 			Pacified.erase(a_victim->GetFormID());
 		}
-
 		logger::info("{:X} ({}) has been released", a_victim->GetFormID(), a_victim->GetDisplayFullName());
 	}
 
 	bool Defeat::IsDefeated(const RE::Actor* a_victim)
 	{
 		const auto key = a_victim->GetFormID();
-		std::shared_lock lock{_m};
+		std::shared_lock lock{ _m };
 		return Victims.contains(key) && Pacified.contains(key);
 	}
 
 	bool Defeat::IsPacified(const RE::Actor* a_victim)
 	{
-		std::shared_lock lock{_m};
+		std::shared_lock lock{ _m };
 		return Pacified.contains(a_victim->GetFormID());
 	}
 
 	bool Defeat::IsDamageImmune(RE::Actor* a_victim)
 	{
-		std::shared_lock lock{_m};
+		std::shared_lock lock{ _m };
 		return Victims.contains(a_victim->GetFormID());
 	}
 
@@ -261,44 +250,34 @@ namespace Acheron
 
 	std::vector<RE::Actor*> Defeat::GetAllPacified(bool a_loadedonly)
 	{
-		std::shared_lock lock{_m};
 		std::vector<RE::Actor*> ret;
-		for (auto &&formid : Pacified)
-		{
-			auto actor = RE::TESForm::LookupByID<RE::Actor>(formid);
-			if (!actor)
-				continue;
-
-			if (a_loadedonly && !actor->Is3DLoaded())
-				continue;
-
-			ret.push_back(actor);
-		}
-		return ret;
+		std::shared_lock lock{ _m };
+		return std::accumulate(Pacified.begin(), Pacified.end(), std::vector<RE::Actor*>{}, [&](auto acc, const auto& formId) {
+			auto actor = RE::TESForm::LookupByID<RE::Actor>(formId);
+			if (actor && (!a_loadedonly || actor->Is3DLoaded())) {
+				acc.push_back(actor);
+			}
+			return acc;
+		});
 	}
 
 	std::vector<RE::Actor*> Defeat::GetAllDefeated(bool a_loadedonly)
 	{
-		std::shared_lock lock{_m};
-		std::vector<RE::Actor*> ret;
-		for (auto&& [formid, data] : Victims) {
-			auto actor = RE::TESForm::LookupByID<RE::Actor>(formid);
-			if (!actor)
-				continue;
-
-			if (a_loadedonly && !actor->Is3DLoaded())
-				continue;
-
-			ret.push_back(actor);
-		}
-		return ret;
+		std::shared_lock lock{ _m };
+		return std::accumulate(Victims.begin(), Victims.end(), std::vector<RE::Actor*>{}, [&](auto acc, const auto& pair) {
+			auto actor = RE::TESForm::LookupByID<RE::Actor>(pair.first);
+			if (actor && (!a_loadedonly || actor->Is3DLoaded())) {
+				acc.push_back(actor);
+			}
+			return acc;
+		});
 	}
 
 	void Defeat::ForEachVictim(std::function<VictimVistor(RE::FormID a_victimid, std::shared_ptr<VictimData> a_data)> a_visitor)
 	{
 		std::vector<std::pair<RE::FormID, std::shared_ptr<VictimData>>> v;
 		{
-			std::shared_lock lock{_m};
+			std::shared_lock lock{ _m };
 			v.assign(Victims.begin(), Victims.end());
 		}
 		for (auto& [formid, data] : v) {
@@ -309,22 +288,23 @@ namespace Acheron
 
 	std::shared_ptr<Defeat::VictimData> Defeat::GetVictimData(RE::FormID a_formid)
 	{
-		std::shared_lock lock{_m};
+		std::shared_lock lock{ _m };
 		const auto where = Victims.find(a_formid);
-		if (where == Victims.end())
+		if (where == Victims.end()) {
 			return {};
-
+		}
 		return where->second;
 	}
 
 	void Defeat::DisableRecovery(bool a_loadedonly)
 	{
-		std::shared_lock lock{_m};
+		std::unique_lock lock{ _m };
 		for (auto&& [formid, data] : Victims) {
 			if (a_loadedonly) {
 				auto victim = RE::TESForm::LookupByID<RE::Actor>(formid);
-				if (victim && !victim->Is3DLoaded())
+				if (victim && !victim->Is3DLoaded()) {
 					continue;
+				}
 			}
 			data->allow_recovery = false;
 		}
@@ -336,18 +316,16 @@ namespace Acheron
 
 	void Defeat::Load(SKSE::SerializationInterface* a_intfc, uint32_t a_type)
 	{
-		std::unique_lock lock{_m};
+		std::unique_lock lock{ _m };
 		switch (a_type) {
 		case Serialization::Serialize::_Defeated:
 			{
+				Victims.clear();
 				std::size_t numRegs;
 				a_intfc->ReadRecordData(numRegs);
 
-				Victims.clear();
-
 				RE::FormID formID;
 				float time;
-
 				for (size_t i = 0; i < numRegs; i++) {
 					a_intfc->ReadRecordData(formID);
 					if (!a_intfc->ResolveFormID(formID, formID)) {
@@ -355,7 +333,6 @@ namespace Acheron
 						continue;
 					}
 					a_intfc->ReadRecordData(time);
-
 					auto victim = RE::TESForm::LookupByID<RE::Actor>(formID);
 					if (victim) {
 						if (victim->IsPlayerRef()) {
@@ -368,7 +345,6 @@ namespace Acheron
 						}
 						ref->As<RE::BGSKeywordForm>()->AddKeyword(GameForms::Defeated);
 					}
-
 					auto data = std::make_shared<VictimData>(time);
 					data->state.store(VictimState::Defeated);
 					Victims.emplace(formID, data);
@@ -378,13 +354,11 @@ namespace Acheron
 			break;
 		case Serialization::Serialize::_Pacified:
 			{
+				Pacified.clear();
 				std::size_t numRegs;
 				a_intfc->ReadRecordData(numRegs);
 
-				Pacified.clear();
-
 				RE::FormID formID;
-
 				for (size_t i = 0; i < numRegs; i++) {
 					a_intfc->ReadRecordData(formID);
 					if (!a_intfc->ResolveFormID(formID, formID)) {
@@ -410,7 +384,7 @@ namespace Acheron
 
 	void Defeat::Save(SKSE::SerializationInterface* a_intfc, uint32_t a_type)
 	{
-		std::shared_lock lock{_m};
+		std::shared_lock lock{ _m };
 		switch (a_type) {
 		case Serialization::Serialize::_Defeated:
 			{
@@ -451,29 +425,24 @@ namespace Acheron
 
 	void Defeat::Revert(SKSE::SerializationInterface*)
 	{
-		std::unique_lock lock{_m};
+		std::unique_lock lock{ _m };
 		for (auto&& [formid, data] : Victims) {
 			auto actor = RE::TESForm::LookupByID<RE::Actor>(formid);
 			if (!actor)
 				continue;
-
-			if (actor->IsPlayerRef()) {
+			if (actor->IsPlayerRef())
 				actor->RemoveAnimationGraphEventSink(EventHandler::GetSingleton());
-			}
-
-			if (auto ref = actor->GetObjectReference(); ref) {
+			if (auto ref = actor->GetObjectReference()) {
 				ref->As<RE::BGSKeywordForm>()->RemoveKeywords({ GameForms::Defeated, GameForms::Pacified });
 			}
 		}
 		for (auto&& formid : Pacified) {
 			if (Victims.contains(formid))
 				continue;
-
 			auto actor = RE::TESForm::LookupByID<RE::Actor>(formid);
 			if (!actor)
 				continue;
-
-			if (auto ref = actor->GetObjectReference(); ref) {
+			if (auto ref = actor->GetObjectReference()) {
 				ref->As<RE::BGSKeywordForm>()->RemoveKeyword(GameForms::Pacified);
 			}
 		}
@@ -483,7 +452,7 @@ namespace Acheron
 
 	void Defeat::Delete(RE::FormID a_formid)
 	{
-		std::unique_lock lock{_m};
+		std::unique_lock lock{ _m };
 		if (Pacified.erase(a_formid) > 0) {
 			Victims.erase(a_formid);
 			logger::info("Form {:X} has been deleted and removed from Pacified & Victim lists", a_formid);

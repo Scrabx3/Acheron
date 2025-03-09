@@ -13,7 +13,8 @@ namespace Acheron
 			Break
 		};
 
-		enum class VictimState {
+		enum class VictimState
+		{
 			Defeating,
 			Defeated,
 			Rescuing
