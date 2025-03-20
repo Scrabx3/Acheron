@@ -6,7 +6,7 @@
         ["cmake#31fecfc4"] = {
             repo = {
                 branch = "master",
-                commit = "c54cc6e7bc4c571586864d58fdcf119d2ac32250",
+                commit = "d690827620fac7d455dac05ed2e60e576f5cdcf8",
                 url = "https://github.com/xmake-io/xmake-repo.git"
             },
             version = "3.31.6"
@@ -46,7 +46,7 @@
         ["spdlog#9c36f0a9"] = {
             repo = {
                 branch = "master",
-                commit = "c54cc6e7bc4c571586864d58fdcf119d2ac32250",
+                commit = "d690827620fac7d455dac05ed2e60e576f5cdcf8",
                 url = "https://github.com/xmake-io/xmake-repo.git"
             },
             version = "v1.15.1"
