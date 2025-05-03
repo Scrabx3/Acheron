@@ -35,7 +35,7 @@ EndFunction
 ; --------------------- Menu
 
 int Function GetVersion()
-	return 2
+	return 3
 EndFunction
 
 Event OnVersionUpdate(Int newVersion)
@@ -59,12 +59,13 @@ Event OnConfigInit()
   Pages[2] = "$Achr_Stripping"
   Pages[3] = "$Achr_Events"
 
-  _typesList = new String[5]
+  _typesList = new String[6]
   _typesList[0] = "$Achr_Hostile"
   _typesList[1] = "$Achr_Follower"
   _typesList[2] = "$Achr_Civilian"
   _typesList[3] = "$Achr_Guards"
   _typesList[4] = "$Achr_NPC"
+  _typesList[5] = "$Achr_Surrender"
 
   _FollowerRescue = new String[3]
   _FollowerRescue[0] = "$Achr_Rescue_0"
@@ -87,12 +88,6 @@ Event OnPageReset(string page)
     AddToggleOptionST("creatures", "$Achr_Creatures", GetSettingBool("bCreatureDefeat"))
     AddToggleOptionST("killmoves", "$Achr_Killmoves", GetSettingBool("bKillMove"))
 
-    SetCursorPosition(1)
-    AddHeaderOption("$Achr_HunterPride")
-    AddKeyMapOptionST("hunterpridekey", "$Achr_HunterPrideKey", GetSettingInt("iHunterPrideKey"))
-    AddKeyMapOptionST("hunterpridemodkey", "$Achr_ModifierKey", GetSettingInt("iHunterPrideKeyMod"))
-    AddToggleOptionST("hunterpridefollower", "$Achr_HunterPrideFollower", GetSettingBool("bHunterPrideFollower"))
-
     AddHeaderOption("$Achr_Notification")
     bool bNotifyDefeat = GetSettingBool("bNotifyDefeat")
     bool bNotifyDestroy = GetSettingBool("bNotifyDestroy")
@@ -101,6 +96,14 @@ Event OnPageReset(string page)
     AddToggleOptionST("notifydestroy", "$Achr_NotifyDestry", bNotifyDestroy) ; item destruction
 		AddToggleOptionST("notifycolored", "$Achr_NotifyColored", bNotifyColored, getFlag(bNotifyDefeat || bNotifyDestroy))
     AddColorOptionST("notifycolorchoice", "$Achr_NotifyColorChoice", GetSettingColor("rNotifyColor"), getFlag((bNotifyDefeat || bNotifyDestroy) && bNotifyColored))
+
+    SetCursorPosition(1)
+    AddKeyMapOptionST("hunterpridemodkey", "$Achr_ModifierKey", GetSettingInt("iHunterPrideKeyMod"))
+    AddHeaderOption("$Achr_HunterPride")
+    AddKeyMapOptionST("hunterpridekey", "$Achr_HunterPrideKey", GetSettingInt("iHunterPrideKey"))
+    AddToggleOptionST("hunterpridefollower", "$Achr_HunterPrideFollower", GetSettingBool("bHunterPrideFollower"))
+    AddHeaderOption("$Achr_Surrender")
+    AddKeyMapOptionST("surrenderkey", "$Achr_SurrenderKey", GetSettingInt("iSurrenderKey"))
 
   ElseIf (page == "$Achr_Defeat")
     AddHeaderOption("$Achr_Lethal")
@@ -409,6 +412,8 @@ Event OnKeyMapChangeST(int newKeyCode, string conflictControl, string conflictNa
     EndIf
     If(s[0] == "hunterpridekey")
       SetSettingInt("iHunterPrideKey", newKeyCode)
+    ElseIf (s[0] == "surrenderkey")
+      SetSettingInt("iSurrenderKey", newKeyCode)
     EndIf
 	EndIf
   SetKeyMapOptionValueST(newKeyCode)
@@ -433,6 +438,8 @@ Event OnHighlightST()
     SetInfoText("$Achr_NotifyColoredHighlight")
   ElseIf(s[0] == "hunterpridekey")
     SetInfoText("$Achr_HunterPrideKeyHighlight")
+  ElseIf(s[0] == "surrenderkey")
+    SetInfoText("$Achr_SurrenderKeyHighlight")
   ElseIf(s[0] == "hunterpridemodkey")
     SetInfoText("$Achr_ModifierKeyHighlight")
   ElseIf(s[0] == "hunterpridefollower")

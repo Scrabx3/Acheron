@@ -2,7 +2,7 @@ import shutil
 from os import listdir
 from os.path import isfile, join
 
-path = "Interface/Translations"
+path = "dist/Interface/Translations"
 f_english = [f for f in listdir(path) if isfile(join(path, f)) and f.endswith("ENGLISH.txt")]
 
 if len(f_english) < 1:
