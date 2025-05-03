@@ -215,9 +215,7 @@ namespace Acheron
 			return false;
 		}
 
-		const auto processLists = RE::ProcessLists::GetSingleton();
-		const auto GuardDiaFac = RE::TESForm::LookupByID<RE::TESFaction>(0x0002BE3B);
-		const auto isguard = [&GuardDiaFac](RE::Actor* ptr) { return ptr->IsGuard() && ptr->IsInFaction(GuardDiaFac); };
+		const auto isguard = [](RE::Actor* ptr) { return ptr->IsGuard() && ptr->IsInFaction(GameForms::GuardDiaFac); };
 		const auto gethostile = [&a_victim](RE::Actor* actor) {
 			if (actor->IsHostileToActor(a_victim)) {
 				return true;
@@ -232,45 +230,7 @@ namespace Acheron
 								!gethostile(a_victoire.actor)	 ? Type::Civilian :
 								isguard(a_victoire.actor)			 ? Type::Guard :
 																								 Type::Hostile;
-		std::vector<RE::Actor*> memberlist{ a_victoire.actor };
-		for (auto& e : processLists->highActorHandles) {
-			auto actor = e.get().get();
-			if (!actor || actor == a_victoire.actor || actor->IsDead() || !actor->Is3DLoaded() || actor->IsHostileToActor(a_victoire.actor))
-				continue;
-			if (!actor->IsInCombat() && !Defeat::IsDamageImmune(actor))
-				continue;
-
-			switch (type) {
-			case Type::Follower:
-				if (actor->IsPlayerTeammate())
-					memberlist.push_back(actor);
-				break;
-			case Type::Hostile:
-				if (gethostile(actor)) {
-					// if a guard allied with enemy, let them sort out the situation
-					if (isguard(actor)) {
-						memberlist.clear();
-						memberlist.push_back(actor);
-						type = Type::Guard;
-					} else {
-						memberlist.push_back(actor);
-					}
-				}
-				break;
-			case Type::Civilian:
-				if (!gethostile(actor))
-					memberlist.push_back(actor);
-				break;
-			case Type::Guard:
-				if (isguard(actor))
-					memberlist.push_back(actor);
-				break;
-			case Type::NPC:
-				if (actor->IsHostileToActor(a_victim))
-					memberlist.push_back(actor);
-				break;
-			}
-		}
+		std::vector<RE::Actor*> memberlist = Resolution::BuildMemberList(a_victim, a_victoire.actor, type);
 		if (Resolution::SelectQuest(type, a_victim, memberlist, a_incombat, !a_victoire.legal)) {
 			Serialization::EventManager::GetSingleton()->_playerdeathevent.QueueEvent();
 			return true;

@@ -1,8 +1,8 @@
 #include "Acheron/Resolution.h"
 
 #include "Acheron/Animation/Animation.h"
-#include "Acheron/Validation.h"
 #include "Acheron/Defeat.h"
+#include "Acheron/Validation.h"
 
 namespace Acheron
 {
@@ -344,7 +344,6 @@ namespace Acheron
 		for (auto&& t : magic_enum::enum_entries<Type>()) {
 			if (t.first == Type::Total)
 				break;
-
 			const auto& events = Events[t.first];
 			for (auto&& event : events) {
 				try {
@@ -361,10 +360,64 @@ namespace Acheron
 		logger::info("Saved resolution user data");
 	}
 
+	std::vector<RE::Actor*> Resolution::BuildMemberList(RE::Actor* a_victim, RE::Actor* a_aggressor, Type a_type)
+	{
+		const auto isguard = [](RE::Actor* ptr) { return ptr->IsGuard() && ptr->IsInFaction(GameForms::GuardDiaFac); };
+		const auto gethostile = [&a_victim](RE::Actor* actor) {
+			if (actor->IsHostileToActor(a_victim)) {
+				return true;
+			}
+			const auto target = actor->currentCombatTarget.get();
+			return target ? target.get() == a_victim || !target->IsHostileToActor(a_victim) || a_victim->IsPlayerRef() && target->IsPlayerTeammate() : false;
+		};
+		std::vector<RE::Actor*> memberlist{ a_aggressor };
+		const auto processLists = RE::ProcessLists::GetSingleton();
+		for (auto& e : processLists->highActorHandles) {
+			auto actor = e.get().get();
+			if (!actor || actor == a_aggressor || actor->IsDead() || !actor->Is3DLoaded() || actor->IsHostileToActor(a_aggressor))
+				continue;
+			if (!actor->IsInCombat() && !Defeat::IsDamageImmune(actor))
+				continue;
+
+			switch (a_type) {
+			case Type::Follower:
+				if (actor->IsPlayerTeammate())
+					memberlist.push_back(actor);
+				break;
+			case Type::Surrender:
+			case Type::Hostile:
+				if (gethostile(actor)) {
+					// if a guard allied with enemy, let them sort out the situation
+					if (isguard(actor)) {
+						memberlist.clear();
+						memberlist.push_back(actor);
+						a_type = Type::Guard;
+					} else {
+						memberlist.push_back(actor);
+					}
+				}
+				break;
+			case Type::Civilian:
+				if (!gethostile(actor))
+					memberlist.push_back(actor);
+				break;
+			case Type::Guard:
+				if (isguard(actor))
+					memberlist.push_back(actor);
+				break;
+			case Type::NPC:
+				if (actor->IsHostileToActor(a_victim))
+					memberlist.push_back(actor);
+				break;
+			}
+		}
+		return memberlist;
+	}
+
 	bool Resolution::SelectQuest(Type type, RE::Actor* a_victim, const std::vector<RE::Actor*>& a_victoires, bool a_incombat, bool a_doteleport)
 	{
-		logger::info("Looking up quest of type {} for {:X} and {} aggressors. Combat? {} / Teleport? {}", 
-			std::to_underlying(type), a_victim->formID, a_victoires.size(), a_incombat, a_doteleport);
+		logger::info("Looking up quest of type {} for {:X} and {} aggressors. Combat? {} / Teleport? {}",
+				std::to_underlying(type), a_victim->formID, a_victoires.size(), a_incombat, a_doteleport);
 		const bool tp = Validation::AllowTeleport();
 		if (!tp && a_doteleport) {
 			logger::info("Teleport event requested but teleportation is disabled");
@@ -434,7 +487,8 @@ namespace Acheron
 		return false;
 	}
 
-	inline std::string MakeMCMEventKey(const EventData& e) {
+	inline std::string MakeMCMEventKey(const EventData& e)
+	{
 		return std::format("[{}{}{}] {};{};{}",
 				std::to_underlying(e.priority),
 				e.flags.all(EventData::Flag::InCombat) ? ", C" : "",

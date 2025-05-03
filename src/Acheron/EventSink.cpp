@@ -1,6 +1,8 @@
 #include "Acheron/EventSink.h"
 
 #include "Acheron/Defeat.h"
+#include "Acheron/Hooks/Processing.h"
+#include "Acheron/Resolution.h"
 
 namespace Acheron
 {
@@ -132,16 +134,23 @@ namespace Acheron
 		if (!Acheron::IsMovementControlsEnabled(controlMap))
 			return EventResult::kContinue;
 
-		const auto hpkey = Settings::iHunterPrideKey >= SKSE::InputMap::kMacro_GamepadOffset ?
-													 SKSE::InputMap::GamepadKeycodeToMask(Settings::iHunterPrideKey) :
-													 static_cast<uint32_t>(Settings::iHunterPrideKey);
+		const auto getKey = [&](int key) {
+			if (key >= SKSE::InputMap::kMacro_GamepadOffset) {
+				return SKSE::InputMap::GamepadKeycodeToMask(key);
+			} else {
+				return static_cast<uint32_t>(key);
+			}
+		};
+
+		const auto hpkey = getKey(Settings::iHunterPrideKey);
+		const auto surkey = getKey(Settings::iSurrenderKey);
 		for (const RE::InputEvent* input = *a_event; input; input = input->next) {
 			const auto event = input->AsButtonEvent();
-			if (!event || !event->IsDown())
+			if (!event || !event->IsDown()) {
 				continue;
-
+			}
 			const auto idcode = event->GetIDCode();
-			if (idcode == hpkey) {
+			if (idcode == hpkey || idcode == surkey) {
 				if (Settings::iHunterPrideKeyMod > -1) {
 					RE::BSInputDevice* device;
 					auto dmanager = RE::BSInputDeviceManager::GetSingleton();
@@ -160,21 +169,31 @@ namespace Acheron
 						break;
 					}
 					if (device) {
-						const auto modkey = Settings::iHunterPrideKeyMod >= SKSE::InputMap::kMacro_GamepadOffset ?
-																	 SKSE::InputMap::GamepadKeycodeToMask(Settings::iHunterPrideKeyMod) :
-																	 static_cast<uint32_t>(Settings::iHunterPrideKeyMod);
+						const auto modkey = getKey(Settings::iHunterPrideKeyMod);
 						if (!device->IsPressed(modkey)) {
 							continue;
 						}
 					}
 				}
 				auto player = RE::PlayerCharacter::GetSingleton();
-				if (player->HasSpell(GameForms::HunterPride)) {
-					player->RemoveSpell(GameForms::HunterPride);
-					RE::DebugNotification("$Achr_HunterPrideRemoved");
-				} else {
-					player->AddSpell(GameForms::HunterPride);
-					RE::DebugNotification("$Achr_HunterPrideAdded");
+				if (idcode == hpkey) {
+					if (player->HasSpell(GameForms::HunterPride)) {
+						player->RemoveSpell(GameForms::HunterPride);
+						RE::DebugNotification("$Achr_HunterPrideRemoved");
+					} else {
+						player->AddSpell(GameForms::HunterPride);
+						RE::DebugNotification("$Achr_HunterPrideAdded");
+					}
+				} else if (idcode == surkey) {
+					const auto agr = Processing::AggressorInfo(nullptr, player);
+					if (!agr.actor) {
+						RE::DebugNotification("$Achr_SurrenderNoAggressor");
+						return EventResult::kContinue;
+					}
+					const auto memberList = Resolution::BuildMemberList(player, agr.actor, Resolution::Type::Surrender);
+					if (!Resolution::SelectQuest(Resolution::Type::Surrender, player, memberList, false, true)) {
+						RE::DebugNotification("$Achr_SurrenderNoQuest");
+					}
 				}
 				break;
 			}

@@ -104,6 +104,7 @@ namespace Acheron
 			Civilian = 2,		// When the player lost but a non hostile civilian was victorious
 			Guard = 3,			// When the player lost against a guard
 			NPC = 4,				// When the player was not involved in the encounter
+			Surrender = 5,	// When the player surrendered to a hostile actor
 
 			Total,
 			Any
@@ -112,6 +113,8 @@ namespace Acheron
 	public:
 		static void Initialize();
 		static void Save();
+
+		static std::vector<RE::Actor*> BuildMemberList(RE::Actor* a_victim, RE::Actor* a_aggressor, Type a_type);
 
 		/// @brief Lookup a consequence event for the given victim
 		/// @param type The type of event to look for

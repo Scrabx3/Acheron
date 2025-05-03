@@ -10,6 +10,7 @@ namespace Acheron
 		return false;
 
 		// Vanilla Game
+		static inline RE::TESFaction* GuardDiaFac;
 		static inline RE::TESGlobal* KillMove;
 		static inline RE::TESIdleForm* BleedoutStart;
 		static inline RE::TESIdleForm* BleedoutStop;
@@ -33,6 +34,10 @@ namespace Acheron
 
 		[[nodiscard]] static bool LoadForms()
 		{
+			GuardDiaFac = RE::TESForm::LookupByID<RE::TESFaction>(0x0002BE3B);
+			if (!GuardDiaFac)
+				return false;
+
 			KillMove = RE::TESForm::LookupByID<RE::TESGlobal>(0x00100F19);
 			if (!KillMove)
 				return false;
