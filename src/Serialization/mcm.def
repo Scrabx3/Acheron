@@ -1,0 +1,46 @@
+//   #define MCM_SETTING(STR, DEFAULT) ...
+
+MCM_SETTING(ProcessingEnabled, true)
+MCM_SETTING(ConsequenceEnabled, true)
+MCM_SETTING(bCreatureDefeat, false)
+MCM_SETTING(bKillMove, true)
+
+MCM_SETTING(iSurrenderKey, -1)
+
+MCM_SETTING(iHunterPrideKey, -1)
+MCM_SETTING(iHunterPrideKeyMod, -1)
+MCM_SETTING(bHunterPrideFollower, true)
+
+MCM_SETTING(bNotifyDefeat, false)
+MCM_SETTING(bNotifyDestroy, false)
+MCM_SETTING(bNotifyColored, false)
+MCM_SETTING(rNotifyColor, "#FF0000"s)
+
+MCM_SETTING(fMidCombatBlackout, 10.0f)
+MCM_SETTING(bPlayerDefeat, true)
+MCM_SETTING(bFollowerDefeat, true)
+MCM_SETTING(bFolWithPlDefeat, false)
+MCM_SETTING(bNPCDefeat, true)
+
+MCM_SETTING(fKdHealthThresh, 0.20f)
+MCM_SETTING(iKdFallbackTimer, 90)
+MCM_SETTING(iFollowerRescue, 1)
+MCM_SETTING(bNPCRescueReload, true)
+
+MCM_SETTING(bLethalEssential, true)
+MCM_SETTING(fLethalPlayer, 100.0f)
+MCM_SETTING(fLethalFollower, 100.0f)
+MCM_SETTING(fLethalNPC, 100.0f)
+
+MCM_SETTING(bTraumaEnabled, false)
+MCM_SETTING(bTraumaHealth, true)
+MCM_SETTING(fTraumaMult, 32.0f)
+MCM_SETTING(fTraumeBackAttack, 2.0f)
+
+MCM_SETTING(iStrips, 1066390941)
+MCM_SETTING(iExposed, 2)
+MCM_SETTING(fExposedChance, 0.0f)
+
+MCM_SETTING(fStripChance, 0.0f)
+MCM_SETTING(fStripDestroy, 5.0f)
+MCM_SETTING(bStripDrop, false)

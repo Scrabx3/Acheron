@@ -27,8 +27,8 @@ using json = nlohmann::json;
 #include "GameForms.h"
 #include "Random.h"
 #include "Serialization/Serialize.h"
+#include "Serialization/Settings.h"
 #include "Singleton.h"
-#include "Settings.h"
 
 static constexpr auto CONFIGPATH = [](std::string file) -> std::string { return "Data\\SKSE\\Acheron\\"s + file; };
 
