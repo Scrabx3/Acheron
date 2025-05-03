@@ -122,7 +122,7 @@ namespace Acheron
 
 	EventResult EventHandler::ProcessEvent(RE::InputEvent* const* a_event, RE::BSTEventSource<RE::InputEvent*>*)
 	{
-		if (!a_event || Settings::iHunterPrideKey == -1)
+		if (!a_event || (Settings::iHunterPrideKey == -1 && Settings::iSurrenderKey == -1))
 			return EventResult::kContinue;
 
 		const auto intfcStr = RE::InterfaceStrings::GetSingleton();
@@ -187,11 +187,13 @@ namespace Acheron
 				} else if (idcode == surkey) {
 					const auto agr = Processing::AggressorInfo(nullptr, player);
 					if (!agr.actor) {
+						logger::info("Failed to find a valid aggressor for Surrender");
 						RE::DebugNotification("$Achr_SurrenderNoAggressor");
 						return EventResult::kContinue;
 					}
 					const auto memberList = Resolution::BuildMemberList(player, agr.actor, Resolution::Type::Surrender);
-					if (!Resolution::SelectQuest(Resolution::Type::Surrender, player, memberList, false, true)) {
+					if (!Resolution::SelectQuest(Resolution::Type::Surrender, player, memberList, player->IsInCombat(), false)) {
+						logger::info("Failed to select a quest for Surrender");
 						RE::DebugNotification("$Achr_SurrenderNoQuest");
 					}
 				}
