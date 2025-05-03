@@ -5,7 +5,7 @@ PROJECT_NAME = "Acheron"
 
 -- Project
 set_project(PROJECT_NAME)
-set_version("1.6.1")
+set_version("1.7.0")
 set_languages("cxx23")
 set_license("apache-2.0")
 set_warnings("allextra", "error")
@@ -21,9 +21,20 @@ option("compile")
     set_description("Compile papyrus scripts and zip release")
 option_end()
 
+option("skyrim_se")
+    set_default(false)
+    set_description("Enable support for Skyrim 1.5")
+option_end()
+
 -- Dependencies & Includes
 -- https://github.com/xmake-io/xmake-repo/tree/dev
 add_requires("yaml-cpp", "magic_enum", "nlohmann_json", "simpleini")
+
+if get_config("skyrim_se") then
+    set_config("skyrim_ae", false)
+else
+    set_config("skyrim_ae", true)
+end
 
 includes("lib/commonlibsse")
 
